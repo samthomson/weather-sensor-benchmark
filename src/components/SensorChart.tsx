@@ -44,13 +44,16 @@ function getSensorUnit(sensorType: string): string {
 // Format timestamp for display
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp * 1000);
-  return date.toLocaleTimeString('en-US', { 
-    hour: '2-digit', 
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
     minute: '2-digit',
   });
 }
 
 export function SensorChart({ title, description, data, sensorNames }: SensorChartProps) {
+  console.log('SensorChart received data:', data);
+  console.log('SensorChart received sensorNames:', sensorNames);
+
   // Combine all readings into a single dataset with timestamps
   const allTimestamps = new Set<number>();
   data.forEach(({ readings }) => {
@@ -60,6 +63,8 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
   });
 
   const sortedTimestamps = Array.from(allTimestamps).sort((a, b) => a - b);
+
+  console.log('SensorChart timestamps:', sortedTimestamps.length);
 
   // Build chart data
   const chartData = sortedTimestamps.map(timestamp => {
@@ -109,17 +114,17 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="time" 
+            <XAxis
+              dataKey="time"
               tick={{ fontSize: 12 }}
               interval="preserveStartEnd"
             />
-            <YAxis 
+            <YAxis
               label={{ value: unit, angle: -90, position: 'insideLeft' }}
               tick={{ fontSize: 12 }}
             />
-            <Tooltip 
-              contentStyle={{ 
+            <Tooltip
+              contentStyle={{
                 backgroundColor: 'hsl(var(--background))',
                 border: '1px solid hsl(var(--border))',
                 borderRadius: '8px',
