@@ -15,11 +15,11 @@ export interface SensorReading {
  */
 function validateSensorReadingEvent(event: NostrEvent): boolean {
   if (event.kind !== 4223) return false;
-  
+
   // Must have the weather tag
   const hasWeatherTag = event.tags.some(([tag, value]) => tag === 't' && value === 'weather');
   if (!hasWeatherTag) return false;
-  
+
   return true;
 }
 
@@ -28,10 +28,10 @@ function validateSensorReadingEvent(event: NostrEvent): boolean {
  */
 function parseSensorReadings(event: NostrEvent): SensorReading[] {
   const readings: SensorReading[] = [];
-  
+
   // Known sensor types
   const sensorTypes = ['temp', 'humidity', 'pm1', 'pm25', 'pm10', 'air_quality'];
-  
+
   for (const [tag, value, model] of event.tags) {
     if (sensorTypes.includes(tag) && value) {
       const numValue = parseFloat(value);
@@ -46,7 +46,7 @@ function parseSensorReadings(event: NostrEvent): SensorReading[] {
       }
     }
   }
-  
+
   return readings;
 }
 
@@ -69,38 +69,38 @@ export function useSensorReadings({
   until,
 }: UseSensorReadingsParams) {
   const { nostr } = useNostr();
-  
+
   return useQuery({
     queryKey: ['sensor-readings', pubkey, sensorType, sensorModel, since, until],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
-      
+
       // Query only from relay.samt.st
       const relay = nostr.relay('wss://relay.samt.st');
-      
+
       const filter: Record<string, unknown> = {
         kinds: [4223],
         authors: [pubkey],
         '#t': ['weather'],
         since,
       };
-      
+
       if (until) {
         filter.until = until;
       }
-      
+
       const events = await relay.query([filter], { signal });
-      
+
       // Filter valid events and parse readings
       const allReadings = events
         .filter(validateSensorReadingEvent)
         .flatMap(parseSensorReadings)
-        .filter(reading => 
-          reading.sensorType === sensorType && 
+        .filter(reading =>
+          reading.sensorType === sensorType &&
           reading.model === sensorModel
         )
         .sort((a, b) => a.timestamp - b.timestamp);
-      
+
       return allReadings;
     },
     enabled: Boolean(pubkey && sensorType && sensorModel),
@@ -117,36 +117,43 @@ export function useMultipleSensorReadings(
   until?: number
 ) {
   const { nostr } = useNostr();
-  
+
   return useQuery({
     queryKey: ['multiple-sensor-readings', JSON.stringify(sensors), since, until],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
-      
+
       // Query only from relay.samt.st
       const relay = nostr.relay('wss://relay.samt.st');
-      
+
       // Get unique pubkeys
       const pubkeys = [...new Set(sensors.map(s => s.pubkey))];
-      
+
       const filter: Record<string, unknown> = {
         kinds: [4223],
         authors: pubkeys,
         '#t': ['weather'],
         since,
       };
-      
+
       if (until) {
         filter.until = until;
       }
-      
+
+      console.log('Querying sensor readings with filter:', filter);
+      console.log('Looking for sensors:', sensors);
+
       const events = await relay.query([filter], { signal });
-      
+
+      console.log('Received events:', events.length);
+
       // Parse all readings
       const allReadings = events
         .filter(validateSensorReadingEvent)
         .flatMap(parseSensorReadings);
-      
+
+      console.log('Parsed readings:', allReadings.length);
+
       // Group readings by sensor
       const grouped = sensors.map(sensor => ({
         sensor,
@@ -158,7 +165,9 @@ export function useMultipleSensorReadings(
           )
           .sort((a, b) => a.timestamp - b.timestamp),
       }));
-      
+
+      console.log('Grouped readings:', grouped.map(g => ({ sensor: g.sensor, count: g.readings.length })));
+
       return grouped;
     },
     enabled: sensors.length > 0,

@@ -18,32 +18,46 @@ export interface Comparison {
 }
 
 const STORAGE_KEY = 'weather-comparisons';
+const VERSION_KEY = 'weather-comparisons-version';
+const CURRENT_VERSION = '2';
 
 /**
  * Load comparisons from localStorage
  */
 export function loadComparisons(): Comparison[] {
   try {
+    // Check version and clear if outdated
+    const version = localStorage.getItem(VERSION_KEY);
+    if (version !== CURRENT_VERSION) {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.setItem(VERSION_KEY, CURRENT_VERSION);
+      return [];
+    }
+
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return [];
     const comparisons = JSON.parse(stored) as Comparison[];
 
-    // Migrate old format if needed (old format had sensorType instead of sensorTypes)
-    return comparisons.map(comparison => ({
-      ...comparison,
-      sensors: comparison.sensors.map(sensor => {
-        // If sensor has old format, skip it (incompatible data structure)
-        if ('sensorType' in sensor && !('sensorTypes' in sensor)) {
-          return null;
-        }
-        // Ensure sensorTypes is always an array
-        if (!sensor.sensorTypes || !Array.isArray(sensor.sensorTypes)) {
-          return null;
-        }
-        return sensor;
-      }).filter((s): s is SensorSelection => s !== null),
-    }));
+    // Validate data structure
+    return comparisons.filter(comparison => {
+      if (!comparison.sensors || !Array.isArray(comparison.sensors)) return false;
+
+      // Ensure all sensors have the required fields
+      const validSensors = comparison.sensors.every(sensor =>
+        sensor.id &&
+        sensor.stationPubkey &&
+        sensor.stationName &&
+        sensor.sensorModel &&
+        Array.isArray(sensor.sensorTypes) &&
+        sensor.sensorTypes.length > 0
+      );
+
+      return validSensors;
+    });
   } catch {
+    // If parsing fails, clear storage
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.setItem(VERSION_KEY, CURRENT_VERSION);
     return [];
   }
 }
@@ -53,6 +67,7 @@ export function loadComparisons(): Comparison[] {
  */
 export function saveComparisons(comparisons: Comparison[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(comparisons));
+  localStorage.setItem(VERSION_KEY, CURRENT_VERSION);
 }
 
 /**
