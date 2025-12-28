@@ -141,7 +141,19 @@ export function useMultipleSensorReadings(
         filter.until = until;
       }
 
+      console.log('Querying with since:', new Date(since * 1000), 'until:', until ? new Date(until * 1000) : 'now');
+      console.log('Time range in hours:', ((until || Math.floor(Date.now() / 1000)) - since) / 3600);
+
       const events = await relay.query([filter], { signal });
+
+      console.log('Received events count:', events.length);
+      if (events.length > 0) {
+        const oldestEvent = Math.min(...events.map(e => e.created_at));
+        const newestEvent = Math.max(...events.map(e => e.created_at));
+        console.log('Oldest event:', new Date(oldestEvent * 1000));
+        console.log('Newest event:', new Date(newestEvent * 1000));
+        console.log('Actual data span in hours:', (newestEvent - oldestEvent) / 3600);
+      }
 
       // Parse all readings
       const allReadings = events
