@@ -66,12 +66,12 @@ export function ComparisonView({
   // Fetch data for all sensors
   const { data, isLoading, error } = useMultipleSensorReadings(sensors, since, until);
 
-  // Create sensor name mapping
+  // Create sensor name mapping - shorter names for better chart readability
   const sensorNames: Record<string, string> = {};
   comparison.sensors.forEach(sensor => {
     (sensor.sensorTypes || []).forEach(type => {
       const key = `${sensor.stationPubkey}-${type}-${sensor.sensorModel}`;
-      sensorNames[key] = `${sensor.stationName} - ${type} (${sensor.sensorModel})`;
+      sensorNames[key] = `${sensor.stationName} (${sensor.sensorModel})`;
     });
   });
 
@@ -86,6 +86,24 @@ export function ComparisonView({
     if (!data) return { filteredData: [], allOutliers: [] };
     return filterMultipleSensorOutliers(data, sensorNames);
   }, [data, sensorNames]);
+
+  // Group data by sensor type for separate charts
+  const dataGroupedBySensorType = useMemo(() => {
+    const groups = new Map<string, typeof filteredData>();
+
+    filteredData.forEach(item => {
+      const sensorType = item.sensor.sensorType;
+      if (!groups.has(sensorType)) {
+        groups.set(sensorType, []);
+      }
+      groups.get(sensorType)!.push(item);
+    });
+
+    return Array.from(groups.entries()).map(([sensorType, data]) => ({
+      sensorType,
+      data,
+    }));
+  }, [filteredData]);
 
   return (
     <Card>
@@ -180,27 +198,33 @@ export function ComparisonView({
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <Tabs defaultValue="chart" className="w-full">
                       <TabsList className="w-full grid grid-cols-2">
                         <TabsTrigger value="chart">Chart View</TabsTrigger>
                         <TabsTrigger value="table">Table View</TabsTrigger>
                       </TabsList>
-                      <TabsContent value="chart" className="mt-4">
-                        <SensorChart
-                          title={`${comparison.name} - ${TIME_RANGES[timeRange].label}`}
-                          description={TIME_RANGES[timeRange].description}
-                          data={filteredData}
-                          sensorNames={sensorNames}
-                        />
+                      <TabsContent value="chart" className="mt-4 space-y-6">
+                        {dataGroupedBySensorType.map(({ sensorType, data: groupData }) => (
+                          <SensorChart
+                            key={sensorType}
+                            title={`${sensorType.toUpperCase()} - ${TIME_RANGES[timeRange].label}`}
+                            description={TIME_RANGES[timeRange].description}
+                            data={groupData}
+                            sensorNames={sensorNames}
+                          />
+                        ))}
                       </TabsContent>
-                      <TabsContent value="table" className="mt-4">
-                        <SensorDataTable
-                          title={`${comparison.name} - Statistics`}
-                          description={TIME_RANGES[timeRange].description}
-                          data={filteredData}
-                          sensorNames={sensorNames}
-                        />
+                      <TabsContent value="table" className="mt-4 space-y-6">
+                        {dataGroupedBySensorType.map(({ sensorType, data: groupData }) => (
+                          <SensorDataTable
+                            key={sensorType}
+                            title={`${sensorType.toUpperCase()} - Statistics`}
+                            description={TIME_RANGES[timeRange].description}
+                            data={groupData}
+                            sensorNames={sensorNames}
+                          />
+                        ))}
                       </TabsContent>
                     </Tabs>
 
