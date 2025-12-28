@@ -134,6 +134,7 @@ export function useMultipleSensorReadings(
         authors: pubkeys,
         '#t': ['weather'],
         since,
+        limit: 5000, // Increase limit to get more historical data
       };
 
       if (until) {
