@@ -60,10 +60,21 @@ function getSensorUnit(sensorType: string): string {
   return units[sensorType] || '';
 }
 
-// Format timestamp for display
+// Format timestamp for X-axis
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp * 1000);
   return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+// Format timestamp for tooltip (more detailed)
+function formatTooltipTime(timestamp: number): string {
+  const date = new Date(timestamp * 1000);
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -175,6 +186,33 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
   const sensorType = data[0]?.sensor.sensorType || '';
   const unit = getSensorUnit(sensorType);
 
+  // Custom tooltip component
+  const CustomTooltip = ({ active, payload, label }: {
+    active?: boolean;
+    payload?: Array<{ value: number; name: string; color: string }>;
+    label?: number;
+  }) => {
+    if (!active || !payload || !payload.length || !label) return null;
+
+    return (
+      <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
+        <p className="font-semibold mb-2 text-sm">{formatTooltipTime(label)}</p>
+        <div className="space-y-1">
+          {payload.map((entry, index) => (
+            <div key={index} className="flex items-center gap-2 text-xs">
+              <div
+                className="w-3 h-0.5"
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="font-medium">{entry.name}:</span>
+              <span className="font-semibold">{entry.value.toFixed(2)} {unit}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -198,18 +236,7 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
               label={{ value: unit, angle: -90, position: 'insideLeft' }}
               tick={{ fontSize: 12 }}
             />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-              }}
-              formatter={(value: number, name: string) => {
-                // Convert internal key to friendly name
-                const friendlyName = sensorNames[name] || name;
-                return [value.toFixed(2), friendlyName];
-              }}
-            />
+            <Tooltip content={<CustomTooltip />} />
             {legendItems.map(item =>
               item.sensors.map(sensor => {
                 const displayName = sensorNames[sensor.key] || `${item.stationName} - ${sensor.type}`;

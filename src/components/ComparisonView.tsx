@@ -66,13 +66,13 @@ export function ComparisonView({
   // Fetch data for all sensors
   const { data, isLoading, error } = useMultipleSensorReadings(sensors, since, until);
 
-  // Create sensor name mapping - organized by station then sensor type
+  // Create sensor name mapping - use numbered format for compact display
   const sensorNames: Record<string, string> = {};
-  comparison.sensors.forEach(sensor => {
+  comparison.sensors.forEach((sensor, index) => {
     (sensor.sensorTypes || []).forEach(type => {
       const key = `${sensor.stationPubkey}-${type}-${sensor.sensorModel}`;
-      // Format: "Station Name - sensor_type"
-      sensorNames[key] = `${sensor.stationName} - ${type}`;
+      // Format: "#1 - pm25" (much more compact)
+      sensorNames[key] = `#${index + 1} - ${type}`;
     });
   });
 
@@ -126,27 +126,28 @@ export function ComparisonView({
           ) : (
             <div className="flex flex-wrap gap-2">
               {comparison.sensors.map((sensor, index) => {
-                // Assign color based on index
+                // Assign solid color based on index
                 const colorClasses = [
-                  'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-200 dark:border-blue-800',
-                  'bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-200 dark:border-red-800',
-                  'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-200 dark:border-green-800',
-                  'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-800',
-                  'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-200 dark:border-purple-800',
-                  'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-950 dark:text-pink-200 dark:border-pink-800',
+                  'bg-blue-600 text-white hover:bg-blue-700',
+                  'bg-red-600 text-white hover:bg-red-700',
+                  'bg-green-600 text-white hover:bg-green-700',
+                  'bg-amber-600 text-white hover:bg-amber-700',
+                  'bg-purple-600 text-white hover:bg-purple-700',
+                  'bg-pink-600 text-white hover:bg-pink-700',
                 ];
                 const colorClass = colorClasses[index % colorClasses.length];
 
                 return (
                   <Badge
                     key={sensor.id}
-                    variant="outline"
-                    className={`px-3 py-1.5 ${colorClass}`}
+                    className={`px-3 py-1.5 ${colorClass} transition-colors`}
                   >
+                    <span className="font-semibold">#{index + 1}</span>
+                    {' '}
                     {sensor.stationName} - {sensor.sensorModel} ({(sensor.sensorTypes || []).join(', ')})
                     <button
                       onClick={() => onRemoveSensor(sensor.id)}
-                      className="ml-2 hover:opacity-70"
+                      className="ml-2 hover:opacity-70 font-bold"
                     >
                       ×
                     </button>
