@@ -125,17 +125,34 @@ export function ComparisonView({
             </Card>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {comparison.sensors.map(sensor => (
-                <Badge key={sensor.id} variant="secondary" className="px-3 py-1.5">
-                  {sensor.stationName} - {sensor.sensorModel} ({(sensor.sensorTypes || []).join(', ')})
-                  <button
-                    onClick={() => onRemoveSensor(sensor.id)}
-                    className="ml-2 hover:text-destructive"
+              {comparison.sensors.map((sensor, index) => {
+                // Assign color based on index
+                const colorClasses = [
+                  'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-200 dark:border-blue-800',
+                  'bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-200 dark:border-red-800',
+                  'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-200 dark:border-green-800',
+                  'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-800',
+                  'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-200 dark:border-purple-800',
+                  'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-950 dark:text-pink-200 dark:border-pink-800',
+                ];
+                const colorClass = colorClasses[index % colorClasses.length];
+
+                return (
+                  <Badge
+                    key={sensor.id}
+                    variant="outline"
+                    className={`px-3 py-1.5 ${colorClass}`}
                   >
-                    ×
-                  </button>
-                </Badge>
-              ))}
+                    {sensor.stationName} - {sensor.sensorModel} ({(sensor.sensorTypes || []).join(', ')})
+                    <button
+                      onClick={() => onRemoveSensor(sensor.id)}
+                      className="ml-2 hover:opacity-70"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                );
+              })}
             </div>
           )}
         </div>

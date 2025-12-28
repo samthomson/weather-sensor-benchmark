@@ -186,9 +186,13 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
-              dataKey="time"
+              dataKey="timestamp"
+              type="number"
+              domain={['dataMin', 'dataMax']}
+              scale="time"
+              tickFormatter={formatTimestamp}
               tick={{ fontSize: 12 }}
-              interval="preserveStartEnd"
+              minTickGap={50}
             />
             <YAxis
               label={{ value: unit, angle: -90, position: 'insideLeft' }}
@@ -200,20 +204,29 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
                 border: '1px solid hsl(var(--border))',
                 borderRadius: '8px',
               }}
+              formatter={(value: number, name: string) => {
+                // Convert internal key to friendly name
+                const friendlyName = sensorNames[name] || name;
+                return [value.toFixed(2), friendlyName];
+              }}
             />
             {legendItems.map(item =>
-              item.sensors.map(sensor => (
-                <Line
-                  key={sensor.key}
-                  type="monotone"
-                  dataKey={sensor.key}
-                  stroke={item.color}
-                  strokeWidth={2}
-                  strokeDasharray={sensor.strokeDasharray}
-                  dot={false}
-                  connectNulls
-                />
-              ))
+              item.sensors.map(sensor => {
+                const displayName = sensorNames[sensor.key] || `${item.stationName} - ${sensor.type}`;
+                return (
+                  <Line
+                    key={sensor.key}
+                    type="monotone"
+                    dataKey={sensor.key}
+                    name={displayName}
+                    stroke={item.color}
+                    strokeWidth={2}
+                    strokeDasharray={sensor.strokeDasharray}
+                    dot={false}
+                    connectNulls
+                  />
+                );
+              })
             )}
           </LineChart>
         </ResponsiveContainer>
