@@ -138,43 +138,60 @@ export function useMultipleSensorReadings(
       // 24h view: 5-minute intervals (288 samples)
       // 1h view: 30-second intervals (120 samples)
       const intervalSeconds = timeRangeHours > 2 ? 5 * 60 : 30;
-      const sampledReadings: SensorReading[] = [];
 
-      let queryCount = 0;
+      // Build time windows
+      const timeWindows = [];
       for (let timestamp = since; timestamp < endTime; timestamp += intervalSeconds) {
         const windowEnd = Math.min(timestamp + intervalSeconds, endTime);
-
-        const filter: Record<string, unknown> = {
-          kinds: [4223],
-          authors: pubkeys,
-          '#t': ['weather'],
-          since: timestamp,
-          until: windowEnd,
-          limit: 10, // Get a few events per 15-min window
-        };
-
-        const windowEvents = await relay.query([filter], { signal });
-        queryCount++;
-
-        // Parse readings from this window
-        const windowReadings = windowEvents
-          .filter(validateSensorReadingEvent)
-          .flatMap(parseSensorReadings);
-
-        // Take one reading per sensor from this window
-        sensors.forEach(sensor => {
-          const reading = windowReadings.find(r =>
-            r.event.pubkey === sensor.pubkey &&
-            r.sensorType === sensor.sensorType &&
-            r.model === sensor.sensorModel
-          );
-          if (reading) {
-            sampledReadings.push(reading);
-          }
-        });
+        timeWindows.push({ start: timestamp, end: windowEnd });
       }
 
-      console.log(`Executed ${queryCount} interval queries, collected ${sampledReadings.length} readings`);
+      console.log(`Fetching ${timeWindows.length} intervals...`);
+
+      // Query all windows in parallel (batch of 20 at a time to avoid overwhelming)
+      const batchSize = 20;
+      const sampledReadings: SensorReading[] = [];
+
+      for (let i = 0; i < timeWindows.length; i += batchSize) {
+        const batch = timeWindows.slice(i, i + batchSize);
+
+        const batchPromises = batch.map(window => {
+          const filter: Record<string, unknown> = {
+            kinds: [4223],
+            authors: pubkeys,
+            '#t': ['weather'],
+            since: window.start,
+            until: window.end,
+            limit: 10,
+          };
+          return relay.query([filter], { signal });
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+
+        // Process each window's results
+        batchResults.forEach(windowEvents => {
+          const windowReadings = windowEvents
+            .filter(validateSensorReadingEvent)
+            .flatMap(parseSensorReadings);
+
+          // Take one reading per sensor from this window
+          sensors.forEach(sensor => {
+            const reading = windowReadings.find(r =>
+              r.event.pubkey === sensor.pubkey &&
+              r.sensorType === sensor.sensorType &&
+              r.model === sensor.sensorModel
+            );
+            if (reading) {
+              sampledReadings.push(reading);
+            }
+          });
+        });
+
+        console.log(`Batch ${i / batchSize + 1}/${Math.ceil(timeWindows.length / batchSize)}: ${sampledReadings.length} readings`);
+      }
+
+      console.log(`Completed ${timeWindows.length} interval queries, collected ${sampledReadings.length} readings`);
 
       // Group readings by sensor
       const grouped = sensors.map(sensor => ({
