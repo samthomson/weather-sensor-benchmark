@@ -201,23 +201,62 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: {
     active?: boolean;
-    payload?: Array<{ value: number; name: string; color: string }>;
+    payload?: Array<{ value: number; name: string; color: string; dataKey: string }>;
     label?: number;
   }) => {
     if (!active || !payload || !payload.length || !label) return null;
 
+    // Group payload by sensor type, then sort by station
+    const groupedBySensorType = new Map<string, typeof payload>();
+
+    payload.forEach(entry => {
+      // Extract sensor type from name (format: "#1 - pm25")
+      const sensorType = entry.name.split(' - ')[1];
+      if (!groupedBySensorType.has(sensorType)) {
+        groupedBySensorType.set(sensorType, []);
+      }
+      groupedBySensorType.get(sensorType)!.push(entry);
+    });
+
+    // Sort each group by station number
+    groupedBySensorType.forEach(group => {
+      group.sort((a, b) => {
+        const aNum = parseInt(a.name.match(/#(\d+)/)?.[1] || '0');
+        const bNum = parseInt(b.name.match(/#(\d+)/)?.[1] || '0');
+        return aNum - bNum;
+      });
+    });
+
     return (
       <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
         <p className="font-semibold mb-2 text-sm">{formatTooltipTime(label)}</p>
-        <div className="space-y-1">
-          {payload.map((entry, index) => (
-            <div key={index} className="flex items-center gap-2 text-xs">
-              <div
-                className="w-3 h-0.5"
-                style={{ backgroundColor: entry.color }}
-              />
-              <span className="font-medium">{entry.name}:</span>
-              <span className="font-semibold">{entry.value.toFixed(2)} {unit}</span>
+        <div className="space-y-2">
+          {Array.from(groupedBySensorType.entries()).map(([sensorType, entries]) => (
+            <div key={sensorType} className="space-y-1">
+              {entries.map((entry, index) => {
+                // Get the line style for this sensor type
+                const strokeDasharray = SENSOR_TYPE_STYLES[sensorType] || '0';
+                const isDashed = strokeDasharray === '5 5';
+                const isDotted = strokeDasharray === '2 2';
+
+                return (
+                  <div key={index} className="flex items-center gap-2 text-xs">
+                    <svg width="16" height="2" className="flex-shrink-0">
+                      <line
+                        x1="0"
+                        y1="1"
+                        x2="16"
+                        y2="1"
+                        stroke={entry.color}
+                        strokeWidth="2"
+                        strokeDasharray={strokeDasharray}
+                      />
+                    </svg>
+                    <span className="font-medium min-w-[4rem]">{entry.name}:</span>
+                    <span className="font-semibold">{entry.value.toFixed(2)} {unit}</span>
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
