@@ -25,29 +25,37 @@ interface AddSensorDialogProps {
   onAdd: (sensor: {
     stationPubkey: string;
     stationName: string;
-    sensorType: string;
     sensorModel: string;
+    sensorTypes: string[];
   }) => void;
+  existingSensors: Array<{ stationPubkey: string; sensorModel: string }>;
 }
 
-export function AddSensorDialog({ stations, onAdd }: AddSensorDialogProps) {
+export function AddSensorDialog({ stations, onAdd, existingSensors }: AddSensorDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedStation, setSelectedStation] = useState<string>('');
   const [selectedSensor, setSelectedSensor] = useState<string>('');
 
   const station = stations.find(s => s.pubkey === selectedStation);
-  const availableSensors = station?.sensors || [];
+
+  // Filter out sensors that are already added
+  const availableSensors = station?.sensorModels.filter(model => {
+    return !existingSensors.some(
+      existing => existing.stationPubkey === selectedStation && existing.sensorModel === model.model
+    );
+  }) || [];
 
   const handleAdd = () => {
     if (!selectedStation || !selectedSensor || !station) return;
 
-    const [sensorType, sensorModel] = selectedSensor.split('|');
-    
+    const sensorModel = station.sensorModels.find(m => m.model === selectedSensor);
+    if (!sensorModel) return;
+
     onAdd({
       stationPubkey: selectedStation,
       stationName: station.name,
-      sensorType,
-      sensorModel,
+      sensorModel: selectedSensor,
+      sensorTypes: sensorModel.types,
     });
 
     // Reset form
@@ -70,7 +78,7 @@ export function AddSensorDialog({ stations, onAdd }: AddSensorDialogProps) {
         <DialogHeader>
           <DialogTitle>Add Sensor to Comparison</DialogTitle>
           <DialogDescription>
-            Select a weather station and one of its sensors to add to this comparison.
+            Select a weather station and one of its sensor models. All sensor readings from that model will be included.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -95,21 +103,26 @@ export function AddSensorDialog({ stations, onAdd }: AddSensorDialogProps) {
 
           {selectedStation && (
             <div className="grid gap-2">
-              <Label htmlFor="sensor">Sensor</Label>
+              <Label htmlFor="sensor">Sensor Model</Label>
               <Select value={selectedSensor} onValueChange={setSelectedSensor}>
                 <SelectTrigger id="sensor">
-                  <SelectValue placeholder="Select a sensor" />
+                  <SelectValue placeholder="Select a sensor model" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableSensors.map((sensor) => {
-                    const value = `${sensor.type}|${sensor.model}`;
-                    const label = `${sensor.type} (${sensor.model})`;
-                    return (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    );
-                  })}
+                  {availableSensors.length === 0 ? (
+                    <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                      All sensors from this station have been added
+                    </div>
+                  ) : (
+                    availableSensors.map((sensorModel) => {
+                      const label = `${sensorModel.model} (${sensorModel.types.join(', ')})`;
+                      return (
+                        <SelectItem key={sensorModel.model} value={sensorModel.model}>
+                          {label}
+                        </SelectItem>
+                      );
+                    })
+                  )}
                 </SelectContent>
               </Select>
             </div>

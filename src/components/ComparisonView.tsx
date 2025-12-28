@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, AlertCircle } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { AddSensorDialog } from './AddSensorDialog';
 import { SensorChart } from './SensorChart';
 import { SensorDataTable } from './SensorDataTable';
@@ -47,12 +47,14 @@ export function ComparisonView({
   const now = Math.floor(Date.now() / 1000);
   const since = now - TIME_RANGES[timeRange].seconds;
 
-  // Prepare sensor list for query
-  const sensors = comparison.sensors.map(s => ({
-    pubkey: s.stationPubkey,
-    sensorType: s.sensorType,
-    sensorModel: s.sensorModel,
-  }));
+  // Prepare sensor list for query - expand each sensor model into all its types
+  const sensors = comparison.sensors.flatMap(s =>
+    (s.sensorTypes || []).map(type => ({
+      pubkey: s.stationPubkey,
+      sensorType: type,
+      sensorModel: s.sensorModel,
+    }))
+  );
 
   // Fetch data for all sensors
   const { data, isLoading, error } = useMultipleSensorReadings(sensors, since, now);
@@ -60,13 +62,17 @@ export function ComparisonView({
   // Create sensor name mapping
   const sensorNames: Record<string, string> = {};
   comparison.sensors.forEach(sensor => {
-    const key = `${sensor.stationPubkey}-${sensor.sensorType}-${sensor.sensorModel}`;
-    sensorNames[key] = `${sensor.stationName} - ${sensor.sensorType} (${sensor.sensorModel})`;
+    (sensor.sensorTypes || []).forEach(type => {
+      const key = `${sensor.stationPubkey}-${type}-${sensor.sensorModel}`;
+      sensorNames[key] = `${sensor.stationName} - ${type} (${sensor.sensorModel})`;
+    });
   });
 
-  // Check if all sensors are the same type
-  const sensorTypes = new Set(comparison.sensors.map(s => s.sensorType));
-  const allSameType = sensorTypes.size === 1;
+  // Get existing sensor keys for filtering in the AddSensorDialog
+  const existingSensors = comparison.sensors.map(s => ({
+    stationPubkey: s.stationPubkey,
+    sensorModel: s.sensorModel,
+  }));
 
   return (
     <Card>
@@ -87,15 +93,19 @@ export function ComparisonView({
         {/* Sensor List */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Selected Sensors</h3>
-            <AddSensorDialog stations={stations} onAdd={onAddSensor} />
+            <h3 className="text-sm font-semibold">Selected Sensor Models</h3>
+            <AddSensorDialog
+              stations={stations}
+              onAdd={onAddSensor}
+              existingSensors={existingSensors}
+            />
           </div>
-          
+
           {comparison.sensors.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="py-8 text-center">
                 <p className="text-muted-foreground text-sm">
-                  No sensors selected. Click "Add Sensor" to get started.
+                  No sensor models selected. Click "Add Sensor" to get started.
                 </p>
               </CardContent>
             </Card>
@@ -103,7 +113,7 @@ export function ComparisonView({
             <div className="flex flex-wrap gap-2">
               {comparison.sensors.map(sensor => (
                 <Badge key={sensor.id} variant="secondary" className="px-3 py-1.5">
-                  {sensor.stationName} - {sensor.sensorType} ({sensor.sensorModel})
+                  {sensor.stationName} - {sensor.sensorModel} ({(sensor.sensorTypes || []).join(', ')})
                   <button
                     onClick={() => onRemoveSensor(sensor.id)}
                     className="ml-2 hover:text-destructive"
@@ -112,15 +122,6 @@ export function ComparisonView({
                   </button>
                 </Badge>
               ))}
-            </div>
-          )}
-
-          {!allSameType && comparison.sensors.length > 0 && (
-            <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
-              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500 mt-0.5" />
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                Sensors have different types. Comparison may not be meaningful.
-              </p>
             </div>
           )}
         </div>

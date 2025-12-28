@@ -6,8 +6,8 @@ export interface SensorSelection {
   id: string; // unique ID for this selection
   stationPubkey: string;
   stationName: string;
-  sensorType: string;
   sensorModel: string;
+  sensorTypes: string[]; // All types this model provides
 }
 
 export interface Comparison {
@@ -26,7 +26,23 @@ export function loadComparisons(): Comparison[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return [];
-    return JSON.parse(stored);
+    const comparisons = JSON.parse(stored) as Comparison[];
+
+    // Migrate old format if needed (old format had sensorType instead of sensorTypes)
+    return comparisons.map(comparison => ({
+      ...comparison,
+      sensors: comparison.sensors.map(sensor => {
+        // If sensor has old format, skip it (incompatible data structure)
+        if ('sensorType' in sensor && !('sensorTypes' in sensor)) {
+          return null;
+        }
+        // Ensure sensorTypes is always an array
+        if (!sensor.sensorTypes || !Array.isArray(sensor.sensorTypes)) {
+          return null;
+        }
+        return sensor;
+      }).filter((s): s is SensorSelection => s !== null),
+    }));
   } catch {
     return [];
   }

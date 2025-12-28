@@ -39,32 +39,20 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                <BarChart3 className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                  Weather Sensor Benchmark
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Compare sensors across multiple weather stations
-                </p>
-              </div>
+          <div className="flex items-center gap-3">
+            <BarChart3 className="h-6 w-6" />
+            <div>
+              <h1 className="text-2xl font-bold">
+                Weather Sensor Benchmark
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Compare sensors across multiple weather stations
+              </p>
             </div>
-            <a
-              href="https://shakespeare.diy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Vibed with Shakespeare
-            </a>
           </div>
         </div>
       </header>
@@ -73,49 +61,49 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Database className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Database className="h-4 w-4" />
                 Weather Stations
               </CardTitle>
             </CardHeader>
             <CardContent>
               {stationsLoading ? (
-                <Skeleton className="h-8 w-16 bg-blue-400/50" />
+                <Skeleton className="h-8 w-16" />
               ) : (
-                <p className="text-3xl font-bold">{stations?.length || 0}</p>
+                <p className="text-2xl font-semibold">{stations?.length || 0}</p>
               )}
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-cyan-500 to-cyan-600 text-white">
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Zap className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Zap className="h-4 w-4" />
                 Total Sensors
               </CardTitle>
             </CardHeader>
             <CardContent>
               {stationsLoading ? (
-                <Skeleton className="h-8 w-16 bg-cyan-400/50" />
+                <Skeleton className="h-8 w-16" />
               ) : (
-                <p className="text-3xl font-bold">
-                  {stations?.reduce((sum, s) => sum + s.sensors.length, 0) || 0}
+                <p className="text-2xl font-semibold">
+                  {stations?.reduce((sum, s) => sum + (s.sensorModels?.length || 0), 0) || 0}
                 </p>
               )}
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <BarChart3 className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BarChart3 className="h-4 w-4" />
                 Active Comparisons
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{comparisons.length}</p>
+              <p className="text-2xl font-semibold">{comparisons.length}</p>
             </CardContent>
           </Card>
         </div>
@@ -184,17 +172,10 @@ const Index = () => {
             <Card className="border-dashed">
               <CardContent className="py-16 px-8 text-center">
                 <div className="max-w-md mx-auto space-y-4">
-                  <div className="h-16 w-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full mx-auto flex items-center justify-center">
-                    <BarChart3 className="h-8 w-8 text-white" />
-                  </div>
                   <h3 className="text-xl font-semibold">No Comparisons Yet</h3>
                   <p className="text-muted-foreground">
                     Create your first comparison to start benchmarking weather sensors across different stations.
                   </p>
-                  <Button onClick={() => setDialogOpen(true)} className="mt-4">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create First Comparison
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -233,6 +214,20 @@ const Index = () => {
           </Card>
         )}
       </main>
+
+      {/* Footer */}
+      <footer className="border-t mt-12 py-6">
+        <div className="container mx-auto px-4 text-center">
+          <a
+            href="https://shakespeare.diy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Vibed with Shakespeare
+          </a>
+        </div>
+      </footer>
     </div>
   );
 };

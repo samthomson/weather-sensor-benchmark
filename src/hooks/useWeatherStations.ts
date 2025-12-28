@@ -2,16 +2,18 @@ import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import type { NostrEvent } from '@nostrify/nostrify';
 
+export interface SensorModel {
+  model: string;
+  types: string[]; // All sensor types this model provides (e.g., PMS5003 provides pm1, pm25, pm10)
+}
+
 export interface WeatherStation {
   pubkey: string;
   name: string;
   geohash?: string;
   power?: string;
   connectivity?: string;
-  sensors: Array<{
-    type: string;
-    model: string;
-  }>;
+  sensorModels: SensorModel[];
   event: NostrEvent;
 }
 
@@ -20,11 +22,11 @@ export interface WeatherStation {
  */
 function validateWeatherStationEvent(event: NostrEvent): boolean {
   if (event.kind !== 16158) return false;
-  
+
   // Must have at least one sensor tag
   const sensorTags = event.tags.filter(([name]) => name === 'sensor');
   if (sensorTags.length === 0) return false;
-  
+
   return true;
 }
 
@@ -36,21 +38,34 @@ function parseWeatherStation(event: NostrEvent): WeatherStation {
   const geohash = event.tags.find(([tag]) => tag === 'g')?.[1];
   const power = event.tags.find(([tag]) => tag === 'power')?.[1];
   const connectivity = event.tags.find(([tag]) => tag === 'connectivity')?.[1];
-  
-  const sensors = event.tags
+
+  // Group sensor types by model
+  const sensorsByModel = new Map<string, Set<string>>();
+
+  event.tags
     .filter(([tag]) => tag === 'sensor')
-    .map(([, type, model]) => ({
-      type: type || 'unknown',
-      model: model || 'unknown',
-    }));
-  
+    .forEach(([, type, model]) => {
+      const modelName = model || 'unknown';
+      const sensorType = type || 'unknown';
+
+      if (!sensorsByModel.has(modelName)) {
+        sensorsByModel.set(modelName, new Set());
+      }
+      sensorsByModel.get(modelName)!.add(sensorType);
+    });
+
+  const sensorModels: SensorModel[] = Array.from(sensorsByModel.entries()).map(([model, types]) => ({
+    model,
+    types: Array.from(types),
+  }));
+
   return {
     pubkey: event.pubkey,
     name,
     geohash,
     power,
     connectivity,
-    sensors,
+    sensorModels,
     event,
   };
 }
@@ -60,20 +75,20 @@ function parseWeatherStation(event: NostrEvent): WeatherStation {
  */
 export function useWeatherStations() {
   const { nostr } = useNostr();
-  
+
   return useQuery({
     queryKey: ['weather-stations'],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
+
       // Query only from relay.samt.st
       const relay = nostr.relay('wss://relay.samt.st');
-      
+
       const events = await relay.query(
         [{ kinds: [16158], limit: 100 }],
         { signal }
       );
-      
+
       // Filter and parse valid station events
       return events
         .filter(validateWeatherStationEvent)
