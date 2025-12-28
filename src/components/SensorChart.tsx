@@ -91,7 +91,7 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
 
   const sortedTimestamps = Array.from(allTimestamps).sort((a, b) => a - b);
 
-  // Build chart data
+  // Build chart data with forward-fill for missing values
   const chartData = sortedTimestamps.map(timestamp => {
     const dataPoint: Record<string, number | string> = {
       timestamp,
@@ -100,9 +100,21 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
 
     data.forEach(({ sensor, readings }) => {
       const sensorKey = `${sensor.pubkey}-${sensor.sensorType}-${sensor.sensorModel}`;
-      const reading = readings.find(r => r.timestamp === timestamp);
-      if (reading) {
-        dataPoint[sensorKey] = reading.value;
+
+      // Find exact reading at this timestamp
+      const exactReading = readings.find(r => r.timestamp === timestamp);
+
+      if (exactReading) {
+        dataPoint[sensorKey] = exactReading.value;
+      } else {
+        // Find the most recent reading before this timestamp (forward-fill)
+        const previousReading = readings
+          .filter(r => r.timestamp < timestamp)
+          .sort((a, b) => b.timestamp - a.timestamp)[0];
+
+        if (previousReading) {
+          dataPoint[sensorKey] = previousReading.value;
+        }
       }
     });
 
