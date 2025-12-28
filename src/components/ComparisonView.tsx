@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,9 +45,14 @@ export function ComparisonView({
 
   const [timeRange, setTimeRange] = useState<'1h' | '24h'>('24h');
 
-  // Calculate time range
-  const now = Math.floor(Date.now() / 1000);
-  const since = now - TIME_RANGES[timeRange].seconds;
+  // Calculate time range - memoize to prevent constant re-queries
+  const { since, until } = useMemo(() => {
+    const now = Math.floor(Date.now() / 1000);
+    return {
+      since: now - TIME_RANGES[timeRange].seconds,
+      until: now,
+    };
+  }, [timeRange]); // Only recalculate when timeRange changes
 
   // Prepare sensor list for query - expand each sensor model into all its types
   const sensors = comparison.sensors.flatMap(s =>
@@ -59,7 +64,7 @@ export function ComparisonView({
   );
 
   // Fetch data for all sensors
-  const { data, isLoading, error } = useMultipleSensorReadings(sensors, since, now);
+  const { data, isLoading, error } = useMultipleSensorReadings(sensors, since, until);
 
   console.log('Query state:', {
     hasData: !!data,
