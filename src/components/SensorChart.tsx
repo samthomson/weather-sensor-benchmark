@@ -194,7 +194,7 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
     );
   }
 
-  // Get the sensor type and unit (assumes all sensors are the same type)
+  // Get the sensor type and unit (for Y-axis label - uses first sensor)
   const sensorType = data[0]?.sensor.sensorType || '';
   const unit = getSensorUnit(sensorType);
 
@@ -231,34 +231,37 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
       <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
         <p className="font-semibold mb-2 text-sm">{formatTooltipTime(label)}</p>
         <div className="space-y-2">
-          {Array.from(groupedBySensorType.entries()).map(([sensorType, entries]) => (
-            <div key={sensorType} className="space-y-1">
-              {entries.map((entry, index) => {
-                // Get the line style for this sensor type
-                const strokeDasharray = SENSOR_TYPE_STYLES[sensorType] || '0';
-                const isDashed = strokeDasharray === '5 5';
-                const isDotted = strokeDasharray === '2 2';
+          {Array.from(groupedBySensorType.entries()).map(([sensorType, entries]) => {
+            // Get unit for this specific sensor type
+            const sensorUnit = getSensorUnit(sensorType);
 
-                return (
-                  <div key={index} className="flex items-center gap-2 text-xs">
-                    <svg width="16" height="2" className="flex-shrink-0">
-                      <line
-                        x1="0"
-                        y1="1"
-                        x2="16"
-                        y2="1"
-                        stroke={entry.color}
-                        strokeWidth="2"
-                        strokeDasharray={strokeDasharray}
-                      />
-                    </svg>
-                    <span className="font-medium min-w-[4rem]">{entry.name}:</span>
-                    <span className="font-semibold">{entry.value.toFixed(2)} {unit}</span>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+            return (
+              <div key={sensorType} className="space-y-1">
+                {entries.map((entry, index) => {
+                  // Get the line style for this sensor type
+                  const strokeDasharray = SENSOR_TYPE_STYLES[sensorType] || '0';
+
+                  return (
+                    <div key={index} className="flex items-center gap-2 text-xs">
+                      <svg width="16" height="2" className="flex-shrink-0">
+                        <line
+                          x1="0"
+                          y1="1"
+                          x2="16"
+                          y2="1"
+                          stroke={entry.color}
+                          strokeWidth="2"
+                          strokeDasharray={strokeDasharray}
+                        />
+                      </svg>
+                      <span className="font-medium min-w-[4rem]">{entry.name}:</span>
+                      <span className="font-semibold">{entry.value.toFixed(2)} {sensorUnit}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
