@@ -61,6 +61,14 @@ export function ComparisonView({
   // Fetch data for all sensors
   const { data, isLoading, error } = useMultipleSensorReadings(sensors, since, now);
 
+  console.log('Query state:', {
+    hasData: !!data,
+    isLoading,
+    hasError: !!error,
+    sensorsLength: sensors.length,
+    dataLength: data?.length
+  });
+
   // Create sensor name mapping
   const sensorNames: Record<string, string> = {};
   comparison.sensors.forEach(sensor => {
