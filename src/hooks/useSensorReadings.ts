@@ -121,7 +121,7 @@ export function useMultipleSensorReadings(
   return useQuery({
     queryKey: ['multiple-sensor-readings', JSON.stringify(sensors), since, until],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(30000)]); // Increase timeout to 30s for more data
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(30000)]);
 
       // Query only from relay.samt.st
       const relay = nostr.relay('wss://relay.samt.st');
@@ -129,33 +129,45 @@ export function useMultipleSensorReadings(
       // Get unique pubkeys
       const pubkeys = [...new Set(sensors.map(s => s.pubkey))];
 
-      const filter: Record<string, unknown> = {
-        kinds: [4223],
-        authors: pubkeys,
-        '#t': ['weather'],
-        since,
-      };
+      const endTime = until || Math.floor(Date.now() / 1000);
+      const timeRangeHours = (endTime - since) / 3600;
 
-      if (until) {
-        filter.until = until;
+      console.log('Querying with since:', new Date(since * 1000), 'until:', new Date(endTime * 1000));
+      console.log('Time range in hours:', timeRangeHours);
+
+      // Batch queries in 4-hour chunks to work around relay 500-event limit
+      const allEvents = [];
+      const chunkSize = 4 * 3600; // 4 hours in seconds
+
+      for (let chunkStart = since; chunkStart < endTime; chunkStart += chunkSize) {
+        const chunkEnd = Math.min(chunkStart + chunkSize, endTime);
+
+        const filter: Record<string, unknown> = {
+          kinds: [4223],
+          authors: pubkeys,
+          '#t': ['weather'],
+          since: chunkStart,
+          until: chunkEnd,
+        };
+
+        const chunkEvents = await relay.query([filter], { signal });
+        allEvents.push(...chunkEvents);
+
+        console.log(`Chunk ${new Date(chunkStart * 1000).toLocaleTimeString()} - ${new Date(chunkEnd * 1000).toLocaleTimeString()}: ${chunkEvents.length} events`);
       }
 
-      console.log('Querying with since:', new Date(since * 1000), 'until:', until ? new Date(until * 1000) : 'now');
-      console.log('Time range in hours:', ((until || Math.floor(Date.now() / 1000)) - since) / 3600);
+      console.log('Total events across all chunks:', allEvents.length);
 
-      const events = await relay.query([filter], { signal });
-
-      console.log('Received events count:', events.length);
-      if (events.length > 0) {
-        const oldestEvent = Math.min(...events.map(e => e.created_at));
-        const newestEvent = Math.max(...events.map(e => e.created_at));
+      if (allEvents.length > 0) {
+        const oldestEvent = Math.min(...allEvents.map(e => e.created_at));
+        const newestEvent = Math.max(...allEvents.map(e => e.created_at));
         console.log('Oldest event:', new Date(oldestEvent * 1000));
         console.log('Newest event:', new Date(newestEvent * 1000));
         console.log('Actual data span in hours:', (newestEvent - oldestEvent) / 3600);
       }
 
       // Parse all readings
-      const allReadings = events
+      const allReadings = allEvents
         .filter(validateSensorReadingEvent)
         .flatMap(parseSensorReadings);
 
