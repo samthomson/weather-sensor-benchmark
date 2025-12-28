@@ -51,9 +51,6 @@ function formatTimestamp(timestamp: number): string {
 }
 
 export function SensorChart({ title, description, data, sensorNames }: SensorChartProps) {
-  console.log('SensorChart received data:', data);
-  console.log('SensorChart received sensorNames:', sensorNames);
-
   // Combine all readings into a single dataset with timestamps
   const allTimestamps = new Set<number>();
   data.forEach(({ readings }) => {
@@ -63,8 +60,6 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
   });
 
   const sortedTimestamps = Array.from(allTimestamps).sort((a, b) => a - b);
-
-  console.log('SensorChart timestamps:', sortedTimestamps.length);
 
   // Build chart data
   const chartData = sortedTimestamps.map(timestamp => {

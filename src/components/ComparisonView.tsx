@@ -7,7 +7,9 @@ import { Trash2 } from 'lucide-react';
 import { AddSensorDialog } from './AddSensorDialog';
 import { SensorChart } from './SensorChart';
 import { SensorDataTable } from './SensorDataTable';
+import { OutliersList } from './OutliersList';
 import { useMultipleSensorReadings } from '@/hooks/useSensorReadings';
+import { filterMultipleSensorOutliers } from '@/lib/outlierFilter';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Comparison, SensorSelection } from '@/lib/comparisonStore';
 import type { WeatherStation } from '@/hooks/useWeatherStations';
@@ -41,8 +43,6 @@ export function ComparisonView({
   onRemoveSensor,
   onDelete,
 }: ComparisonViewProps) {
-  console.log('ComparisonView rendering with comparison:', comparison);
-
   const [timeRange, setTimeRange] = useState<'1h' | '24h'>('24h');
 
   // Calculate time range - memoize to prevent constant re-queries
@@ -66,14 +66,6 @@ export function ComparisonView({
   // Fetch data for all sensors
   const { data, isLoading, error } = useMultipleSensorReadings(sensors, since, until);
 
-  console.log('Query state:', {
-    hasData: !!data,
-    isLoading,
-    hasError: !!error,
-    sensorsLength: sensors.length,
-    dataLength: data?.length
-  });
-
   // Create sensor name mapping
   const sensorNames: Record<string, string> = {};
   comparison.sensors.forEach(sensor => {
@@ -88,6 +80,12 @@ export function ComparisonView({
     stationPubkey: s.stationPubkey,
     sensorModel: s.sensorModel,
   }));
+
+  // Filter outliers from the data
+  const { filteredData, allOutliers } = useMemo(() => {
+    if (!data) return { filteredData: [], allOutliers: [] };
+    return filterMultipleSensorOutliers(data, sensorNames);
+  }, [data, sensorNames]);
 
   return (
     <Card>
@@ -173,13 +171,7 @@ export function ComparisonView({
 
             {data && !isLoading && !error && (
               <>
-                {(() => {
-                  console.log('ComparisonView data check:', data);
-                  console.log('Readings counts:', data.map(d => d.readings.length));
-                  const allEmpty = data.every(d => d.readings.length === 0);
-                  console.log('All empty?', allEmpty);
-                  return allEmpty;
-                })() ? (
+                {filteredData.every(d => d.readings.length === 0) ? (
                   <Card className="border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20">
                     <CardContent className="py-8">
                       <p className="text-center text-amber-800 dark:text-amber-200">
@@ -188,28 +180,33 @@ export function ComparisonView({
                     </CardContent>
                   </Card>
                 ) : (
-                  <Tabs defaultValue="chart" className="w-full">
-                    <TabsList className="w-full grid grid-cols-2">
-                      <TabsTrigger value="chart">Chart View</TabsTrigger>
-                      <TabsTrigger value="table">Table View</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="chart" className="mt-4">
-                      <SensorChart
-                        title={`${comparison.name} - ${TIME_RANGES[timeRange].label}`}
-                        description={TIME_RANGES[timeRange].description}
-                        data={data}
-                        sensorNames={sensorNames}
-                      />
-                    </TabsContent>
-                    <TabsContent value="table" className="mt-4">
-                      <SensorDataTable
-                        title={`${comparison.name} - Statistics`}
-                        description={TIME_RANGES[timeRange].description}
-                        data={data}
-                        sensorNames={sensorNames}
-                      />
-                    </TabsContent>
-                  </Tabs>
+                  <div className="space-y-4">
+                    <Tabs defaultValue="chart" className="w-full">
+                      <TabsList className="w-full grid grid-cols-2">
+                        <TabsTrigger value="chart">Chart View</TabsTrigger>
+                        <TabsTrigger value="table">Table View</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="chart" className="mt-4">
+                        <SensorChart
+                          title={`${comparison.name} - ${TIME_RANGES[timeRange].label}`}
+                          description={TIME_RANGES[timeRange].description}
+                          data={filteredData}
+                          sensorNames={sensorNames}
+                        />
+                      </TabsContent>
+                      <TabsContent value="table" className="mt-4">
+                        <SensorDataTable
+                          title={`${comparison.name} - Statistics`}
+                          description={TIME_RANGES[timeRange].description}
+                          data={filteredData}
+                          sensorNames={sensorNames}
+                        />
+                      </TabsContent>
+                    </Tabs>
+
+                    {/* Show outliers if any were detected */}
+                    <OutliersList outliers={allOutliers} />
+                  </div>
                 )}
               </>
             )}
