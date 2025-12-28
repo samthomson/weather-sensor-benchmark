@@ -121,7 +121,7 @@ export function useMultipleSensorReadings(
   return useQuery({
     queryKey: ['multiple-sensor-readings', JSON.stringify(sensors), since, until],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(30000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(60000)]);
 
       // Query only from relay.samt.st
       const relay = nostr.relay('wss://relay.samt.st');
@@ -132,49 +132,54 @@ export function useMultipleSensorReadings(
       const endTime = until || Math.floor(Date.now() / 1000);
       const timeRangeHours = (endTime - since) / 3600;
 
-      console.log('Querying with since:', new Date(since * 1000), 'until:', new Date(endTime * 1000));
-      console.log('Time range in hours:', timeRangeHours);
+      console.log('Time range:', timeRangeHours, 'hours');
 
-      // Batch queries in 4-hour chunks to work around relay 500-event limit
-      const allEvents = [];
-      const chunkSize = 4 * 3600; // 4 hours in seconds
+      // Sample one reading per interval to get full time range
+      // 24h view: 15-minute intervals (96 samples)
+      // 1h view: 1-minute intervals (60 samples)
+      const intervalSeconds = timeRangeHours > 2 ? 15 * 60 : 60;
+      const sampledReadings: SensorReading[] = [];
 
-      for (let chunkStart = since; chunkStart < endTime; chunkStart += chunkSize) {
-        const chunkEnd = Math.min(chunkStart + chunkSize, endTime);
+      let queryCount = 0;
+      for (let timestamp = since; timestamp < endTime; timestamp += intervalSeconds) {
+        const windowEnd = Math.min(timestamp + intervalSeconds, endTime);
 
         const filter: Record<string, unknown> = {
           kinds: [4223],
           authors: pubkeys,
           '#t': ['weather'],
-          since: chunkStart,
-          until: chunkEnd,
+          since: timestamp,
+          until: windowEnd,
+          limit: 10, // Get a few events per 15-min window
         };
 
-        const chunkEvents = await relay.query([filter], { signal });
-        allEvents.push(...chunkEvents);
+        const windowEvents = await relay.query([filter], { signal });
+        queryCount++;
 
-        console.log(`Chunk ${new Date(chunkStart * 1000).toLocaleTimeString()} - ${new Date(chunkEnd * 1000).toLocaleTimeString()}: ${chunkEvents.length} events`);
+        // Parse readings from this window
+        const windowReadings = windowEvents
+          .filter(validateSensorReadingEvent)
+          .flatMap(parseSensorReadings);
+
+        // Take one reading per sensor from this window
+        sensors.forEach(sensor => {
+          const reading = windowReadings.find(r =>
+            r.event.pubkey === sensor.pubkey &&
+            r.sensorType === sensor.sensorType &&
+            r.model === sensor.sensorModel
+          );
+          if (reading) {
+            sampledReadings.push(reading);
+          }
+        });
       }
 
-      console.log('Total events across all chunks:', allEvents.length);
-
-      if (allEvents.length > 0) {
-        const oldestEvent = Math.min(...allEvents.map(e => e.created_at));
-        const newestEvent = Math.max(...allEvents.map(e => e.created_at));
-        console.log('Oldest event:', new Date(oldestEvent * 1000));
-        console.log('Newest event:', new Date(newestEvent * 1000));
-        console.log('Actual data span in hours:', (newestEvent - oldestEvent) / 3600);
-      }
-
-      // Parse all readings
-      const allReadings = allEvents
-        .filter(validateSensorReadingEvent)
-        .flatMap(parseSensorReadings);
+      console.log(`Executed ${queryCount} interval queries, collected ${sampledReadings.length} readings`);
 
       // Group readings by sensor
       const grouped = sensors.map(sensor => ({
         sensor,
-        readings: allReadings
+        readings: sampledReadings
           .filter(reading =>
             reading.event.pubkey === sensor.pubkey &&
             reading.sensorType === sensor.sensorType &&
@@ -187,6 +192,6 @@ export function useMultipleSensorReadings(
     },
     enabled: sensors.length > 0,
     staleTime: 30 * 1000, // 30 seconds
-    retry: false, // Don't retry on failure
+    retry: false,
   });
 }
