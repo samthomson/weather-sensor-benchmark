@@ -158,7 +158,13 @@ export function ComparisonView({
 
             {data && !isLoading && !error && (
               <>
-                {data.every(d => d.readings.length === 0) ? (
+                {(() => {
+                  console.log('ComparisonView data check:', data);
+                  console.log('Readings counts:', data.map(d => d.readings.length));
+                  const allEmpty = data.every(d => d.readings.length === 0);
+                  console.log('All empty?', allEmpty);
+                  return allEmpty;
+                })() ? (
                   <Card className="border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20">
                     <CardContent className="py-8">
                       <p className="text-center text-amber-800 dark:text-amber-200">
