@@ -27,12 +27,12 @@ const TIME_RANGES = {
   '1h': {
     label: 'Last Hour',
     seconds: 60 * 60,
-    description: '1-minute intervals',
+    description: '30-second intervals',
   },
   '24h': {
     label: 'Last 24 Hours',
     seconds: 24 * 60 * 60,
-    description: '15-minute intervals',
+    description: '5-minute intervals',
   },
 };
 

@@ -135,9 +135,9 @@ export function useMultipleSensorReadings(
       console.log('Time range:', timeRangeHours, 'hours');
 
       // Sample one reading per interval to get full time range
-      // 24h view: 15-minute intervals (96 samples)
-      // 1h view: 1-minute intervals (60 samples)
-      const intervalSeconds = timeRangeHours > 2 ? 15 * 60 : 60;
+      // 24h view: 5-minute intervals (288 samples)
+      // 1h view: 30-second intervals (120 samples)
+      const intervalSeconds = timeRangeHours > 2 ? 5 * 60 : 30;
       const sampledReadings: SensorReading[] = [];
 
       let queryCount = 0;
