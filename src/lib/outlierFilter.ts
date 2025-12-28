@@ -16,7 +16,7 @@ export interface FilteredReadings {
 }
 
 /**
- * Filter outlier readings that deviate more than 400% from the previous value
+ * Filter outlier readings that deviate more than 300% from the previous value
  * @param readings - Array of sensor readings (should be sorted by timestamp)
  * @param stationName - Name of the station for outlier tracking
  * @returns Object containing valid readings and detected outliers
@@ -42,8 +42,8 @@ export function filterOutliers(
     // Calculate percentage change
     const percentChange = Math.abs((current.value - previous.value) / previous.value) * 100;
 
-    // If change is more than 400%, mark as outlier
-    if (percentChange > 400) {
+    // If change is more than 300%, mark as outlier
+    if (percentChange > 300) {
       outliers.push({
         timestamp: current.timestamp,
         value: current.value,

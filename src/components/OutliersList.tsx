@@ -23,10 +23,10 @@ function getSensorUnit(sensorType: string): string {
 // Format timestamp for display
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp * 1000);
-  return date.toLocaleString('en-US', { 
+  return date.toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
-    hour: '2-digit', 
+    hour: '2-digit',
     minute: '2-digit',
   });
 }
@@ -47,7 +47,7 @@ export function OutliersList({ outliers }: OutliersListProps) {
           <CardTitle className="text-base">Outliers Removed</CardTitle>
         </div>
         <CardDescription>
-          {outliers.length} invalid reading{outliers.length !== 1 ? 's' : ''} detected and filtered out (values that changed by more than 400%)
+          {outliers.length} invalid reading{outliers.length !== 1 ? 's' : ''} detected and filtered out (values that changed by more than 300%)
         </CardDescription>
       </CardHeader>
       <CardContent>
