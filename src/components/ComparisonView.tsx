@@ -157,28 +157,40 @@ export function ComparisonView({
             )}
 
             {data && !isLoading && !error && (
-              <Tabs defaultValue="chart" className="w-full">
-                <TabsList className="w-full grid grid-cols-2">
-                  <TabsTrigger value="chart">Chart View</TabsTrigger>
-                  <TabsTrigger value="table">Table View</TabsTrigger>
-                </TabsList>
-                <TabsContent value="chart" className="mt-4">
-                  <SensorChart
-                    title={`${comparison.name} - ${TIME_RANGES[timeRange].label}`}
-                    description={TIME_RANGES[timeRange].description}
-                    data={data}
-                    sensorNames={sensorNames}
-                  />
-                </TabsContent>
-                <TabsContent value="table" className="mt-4">
-                  <SensorDataTable
-                    title={`${comparison.name} - Statistics`}
-                    description={TIME_RANGES[timeRange].description}
-                    data={data}
-                    sensorNames={sensorNames}
-                  />
-                </TabsContent>
-              </Tabs>
+              <>
+                {data.every(d => d.readings.length === 0) ? (
+                  <Card className="border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20">
+                    <CardContent className="py-8">
+                      <p className="text-center text-amber-800 dark:text-amber-200">
+                        No sensor data found for the selected time range. The sensors may not have published data recently.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Tabs defaultValue="chart" className="w-full">
+                    <TabsList className="w-full grid grid-cols-2">
+                      <TabsTrigger value="chart">Chart View</TabsTrigger>
+                      <TabsTrigger value="table">Table View</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="chart" className="mt-4">
+                      <SensorChart
+                        title={`${comparison.name} - ${TIME_RANGES[timeRange].label}`}
+                        description={TIME_RANGES[timeRange].description}
+                        data={data}
+                        sensorNames={sensorNames}
+                      />
+                    </TabsContent>
+                    <TabsContent value="table" className="mt-4">
+                      <SensorDataTable
+                        title={`${comparison.name} - Statistics`}
+                        description={TIME_RANGES[timeRange].description}
+                        data={data}
+                        sensorNames={sensorNames}
+                      />
+                    </TabsContent>
+                  </Tabs>
+                )}
+              </>
             )}
           </div>
         )}
