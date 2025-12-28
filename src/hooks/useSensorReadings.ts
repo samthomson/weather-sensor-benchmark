@@ -121,56 +121,63 @@ export function useMultipleSensorReadings(
   return useQuery({
     queryKey: ['multiple-sensor-readings', JSON.stringify(sensors), since, until],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
+      try {
+        const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
 
-      // Query only from relay.samt.st
-      const relay = nostr.relay('wss://relay.samt.st');
+        // Query only from relay.samt.st
+        const relay = nostr.relay('wss://relay.samt.st');
 
-      // Get unique pubkeys
-      const pubkeys = [...new Set(sensors.map(s => s.pubkey))];
+        // Get unique pubkeys
+        const pubkeys = [...new Set(sensors.map(s => s.pubkey))];
 
-      const filter: Record<string, unknown> = {
-        kinds: [4223],
-        authors: pubkeys,
-        '#t': ['weather'],
-        since,
-      };
+        const filter: Record<string, unknown> = {
+          kinds: [4223],
+          authors: pubkeys,
+          '#t': ['weather'],
+          since,
+        };
 
-      if (until) {
-        filter.until = until;
+        if (until) {
+          filter.until = until;
+        }
+
+        console.log('Querying sensor readings with filter:', filter);
+        console.log('Looking for sensors:', sensors);
+
+        const events = await relay.query([filter], { signal });
+
+        console.log('Received events:', events.length);
+
+        // Parse all readings
+        const allReadings = events
+          .filter(validateSensorReadingEvent)
+          .flatMap(parseSensorReadings);
+
+        console.log('Parsed readings:', allReadings.length);
+
+        // Group readings by sensor
+        const grouped = sensors.map(sensor => ({
+          sensor,
+          readings: allReadings
+            .filter(reading =>
+              reading.event.pubkey === sensor.pubkey &&
+              reading.sensorType === sensor.sensorType &&
+              reading.model === sensor.sensorModel
+            )
+            .sort((a, b) => a.timestamp - b.timestamp),
+        }));
+
+        console.log('Grouped readings:', grouped.map(g => ({ sensor: g.sensor, count: g.readings.length })));
+        console.log('About to return grouped data');
+
+        return grouped;
+      } catch (error) {
+        console.error('Error in queryFn:', error);
+        throw error;
       }
-
-      console.log('Querying sensor readings with filter:', filter);
-      console.log('Looking for sensors:', sensors);
-
-      const events = await relay.query([filter], { signal });
-
-      console.log('Received events:', events.length);
-
-      // Parse all readings
-      const allReadings = events
-        .filter(validateSensorReadingEvent)
-        .flatMap(parseSensorReadings);
-
-      console.log('Parsed readings:', allReadings.length);
-
-      // Group readings by sensor
-      const grouped = sensors.map(sensor => ({
-        sensor,
-        readings: allReadings
-          .filter(reading =>
-            reading.event.pubkey === sensor.pubkey &&
-            reading.sensorType === sensor.sensorType &&
-            reading.model === sensor.sensorModel
-          )
-          .sort((a, b) => a.timestamp - b.timestamp),
-      }));
-
-      console.log('Grouped readings:', grouped.map(g => ({ sensor: g.sensor, count: g.readings.length })));
-
-      return grouped;
     },
     enabled: sensors.length > 0,
     staleTime: 30 * 1000, // 30 seconds
+    retry: false, // Don't retry on failure
   });
 }
