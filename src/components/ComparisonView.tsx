@@ -140,11 +140,11 @@ export function ComparisonView({
                 return (
                   <div
                     key={sensor.id}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 ${colors.border} bg-background/50`}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-md border ${colors.border} bg-background/50`}
                   >
                     <span className={`font-semibold text-sm ${colors.text}`}>#{index + 1}</span>
                     <span className="text-sm">{sensor.stationName}</span>
-                    <Badge className={`${colors.bg} text-white px-2 py-0.5 text-xs`}>
+                    <Badge className={`${colors.bg} text-white px-2 py-0.5 text-xs rounded-md`}>
                       {sensor.sensorModel} ({(sensor.sensorTypes || []).join(', ')})
                     </Badge>
                     <button
