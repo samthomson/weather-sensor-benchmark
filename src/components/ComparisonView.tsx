@@ -124,34 +124,36 @@ export function ComparisonView({
               </CardContent>
             </Card>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {comparison.sensors.map((sensor, index) => {
-                // Assign solid color based on index
-                const colorClasses = [
-                  'bg-blue-600 text-white hover:bg-blue-700',
-                  'bg-red-600 text-white hover:bg-red-700',
-                  'bg-green-600 text-white hover:bg-green-700',
-                  'bg-amber-600 text-white hover:bg-amber-700',
-                  'bg-purple-600 text-white hover:bg-purple-700',
-                  'bg-pink-600 text-white hover:bg-pink-700',
+                // Color schemes for stations
+                const colorSchemes = [
+                  { border: 'border-blue-300 dark:border-blue-700', bg: 'bg-blue-600', text: 'text-blue-700 dark:text-blue-300' },
+                  { border: 'border-red-300 dark:border-red-700', bg: 'bg-red-600', text: 'text-red-700 dark:text-red-300' },
+                  { border: 'border-green-300 dark:border-green-700', bg: 'bg-green-600', text: 'text-green-700 dark:text-green-300' },
+                  { border: 'border-amber-300 dark:border-amber-700', bg: 'bg-amber-600', text: 'text-amber-700 dark:text-amber-300' },
+                  { border: 'border-purple-300 dark:border-purple-700', bg: 'bg-purple-600', text: 'text-purple-700 dark:text-purple-300' },
+                  { border: 'border-pink-300 dark:border-pink-700', bg: 'bg-pink-600', text: 'text-pink-700 dark:text-pink-300' },
                 ];
-                const colorClass = colorClasses[index % colorClasses.length];
+                const colors = colorSchemes[index % colorSchemes.length];
 
                 return (
-                  <Badge
+                  <div
                     key={sensor.id}
-                    className={`px-3 py-1.5 ${colorClass} transition-colors`}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 ${colors.border} bg-background/50`}
                   >
-                    <span className="font-semibold">#{index + 1}</span>
-                    {' '}
-                    {sensor.stationName} - {sensor.sensorModel} ({(sensor.sensorTypes || []).join(', ')})
+                    <span className={`font-semibold text-sm ${colors.text}`}>#{index + 1}</span>
+                    <span className="text-sm">{sensor.stationName}</span>
+                    <Badge className={`${colors.bg} text-white px-2 py-0.5 text-xs`}>
+                      {sensor.sensorModel} ({(sensor.sensorTypes || []).join(', ')})
+                    </Badge>
                     <button
                       onClick={() => onRemoveSensor(sensor.id)}
-                      className="ml-2 hover:opacity-70 font-bold"
+                      className="ml-1 hover:opacity-70 text-muted-foreground hover:text-destructive"
                     >
                       ×
                     </button>
-                  </Badge>
+                  </div>
                 );
               })}
             </div>
