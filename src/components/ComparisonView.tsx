@@ -41,6 +41,8 @@ export function ComparisonView({
   onRemoveSensor,
   onDelete,
 }: ComparisonViewProps) {
+  console.log('ComparisonView rendering with comparison:', comparison);
+
   const [timeRange, setTimeRange] = useState<'1h' | '24h'>('24h');
 
   // Calculate time range
