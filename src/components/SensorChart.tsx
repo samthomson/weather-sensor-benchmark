@@ -207,13 +207,11 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
                   key={sensor.key}
                   type="monotone"
                   dataKey={sensor.key}
-                  name={`${item.stationName} - ${sensor.type}`}
                   stroke={item.color}
                   strokeWidth={2}
                   strokeDasharray={sensor.strokeDasharray}
                   dot={false}
                   connectNulls
-                  hide // Hide from default legend since we use custom
                 />
               ))
             )}
