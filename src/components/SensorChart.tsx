@@ -1,6 +1,17 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { SensorReading } from '@/hooks/useSensorReadings';
+
+interface LegendItem {
+  stationName: string;
+  stationPubkey: string;
+  color: string;
+  sensors: Array<{
+    type: string;
+    key: string;
+    strokeDasharray: string;
+  }>;
+}
 
 interface SensorChartProps {
   title: string;
@@ -16,17 +27,25 @@ interface SensorChartProps {
   sensorNames: Record<string, string>; // Maps sensor ID to display name
 }
 
-// Color palette for different sensors
-const COLORS = [
+// Color palette for different stations
+const STATION_COLORS = [
   '#3b82f6', // blue
   '#ef4444', // red
   '#10b981', // green
   '#f59e0b', // amber
   '#8b5cf6', // violet
   '#ec4899', // pink
-  '#14b8a6', // teal
-  '#f97316', // orange
 ];
+
+// Line styles for different sensor types
+const SENSOR_TYPE_STYLES: Record<string, string> = {
+  'pm1': '0',      // solid
+  'pm25': '5 5',   // dashed
+  'pm10': '2 2',   // dotted
+  'temp': '0',     // solid
+  'humidity': '5 5', // dashed
+  'air_quality': '2 2', // dotted
+};
 
 // Get sensor unit based on type
 function getSensorUnit(sensorType: string): string {
@@ -79,6 +98,63 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
     return dataPoint;
   });
 
+  // Group sensors by station for consistent coloring and organized legend
+  const legendItems: LegendItem[] = [];
+  const stationMap = new Map<string, LegendItem>();
+
+  data.forEach(({ sensor }) => {
+    const sensorKey = `${sensor.pubkey}-${sensor.sensorType}-${sensor.sensorModel}`;
+    const stationName = sensorNames[sensorKey]?.split(' - ')[0] || 'Unknown';
+
+    if (!stationMap.has(sensor.pubkey)) {
+      const colorIndex = stationMap.size;
+      stationMap.set(sensor.pubkey, {
+        stationName,
+        stationPubkey: sensor.pubkey,
+        color: STATION_COLORS[colorIndex % STATION_COLORS.length],
+        sensors: [],
+      });
+    }
+
+    const station = stationMap.get(sensor.pubkey)!;
+    station.sensors.push({
+      type: sensor.sensorType,
+      key: sensorKey,
+      strokeDasharray: SENSOR_TYPE_STYLES[sensor.sensorType] || '0',
+    });
+  });
+
+  legendItems.push(...Array.from(stationMap.values()));
+
+  // Custom legend component
+  const CustomLegend = () => (
+    <div className="flex flex-wrap gap-6 justify-center pt-4 px-4">
+      {legendItems.map(item => (
+        <div key={item.stationPubkey} className="space-y-1">
+          <div className="font-semibold text-xs text-muted-foreground">{item.stationName}</div>
+          <div className="flex flex-wrap gap-3">
+            {item.sensors.map(sensor => (
+              <div key={sensor.key} className="flex items-center gap-1.5">
+                <svg width="24" height="2" className="mt-0.5">
+                  <line
+                    x1="0"
+                    y1="1"
+                    x2="24"
+                    y2="1"
+                    stroke={item.color}
+                    strokeWidth="2"
+                    strokeDasharray={sensor.strokeDasharray}
+                  />
+                </svg>
+                <span className="text-xs">{sensor.type}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   if (chartData.length === 0) {
     return (
       <Card>
@@ -125,27 +201,27 @@ export function SensorChart({ title, description, data, sensorNames }: SensorCha
                 borderRadius: '8px',
               }}
             />
-            <Legend />
-            {data.map(({ sensor }, index) => {
-              const sensorKey = `${sensor.pubkey}-${sensor.sensorType}-${sensor.sensorModel}`;
-              const displayName = sensorNames[sensorKey] || `Sensor ${index + 1}`;
-              const color = COLORS[index % COLORS.length];
-
-              return (
+            {legendItems.map(item =>
+              item.sensors.map(sensor => (
                 <Line
-                  key={sensorKey}
+                  key={sensor.key}
                   type="monotone"
-                  dataKey={sensorKey}
-                  name={displayName}
-                  stroke={color}
+                  dataKey={sensor.key}
+                  name={`${item.stationName} - ${sensor.type}`}
+                  stroke={item.color}
                   strokeWidth={2}
+                  strokeDasharray={sensor.strokeDasharray}
                   dot={false}
                   connectNulls
+                  hide // Hide from default legend since we use custom
                 />
-              );
-            })}
+              ))
+            )}
           </LineChart>
         </ResponsiveContainer>
+
+        {/* Custom organized legend */}
+        <CustomLegend />
       </CardContent>
     </Card>
   );
