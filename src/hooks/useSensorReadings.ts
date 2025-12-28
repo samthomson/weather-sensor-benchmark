@@ -121,7 +121,7 @@ export function useMultipleSensorReadings(
   return useQuery({
     queryKey: ['multiple-sensor-readings', JSON.stringify(sensors), since, until],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(30000)]); // Increase timeout to 30s for more data
 
       // Query only from relay.samt.st
       const relay = nostr.relay('wss://relay.samt.st');
@@ -134,7 +134,6 @@ export function useMultipleSensorReadings(
         authors: pubkeys,
         '#t': ['weather'],
         since,
-        limit: 5000, // Increase limit to get more historical data
       };
 
       if (until) {
