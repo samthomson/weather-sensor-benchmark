@@ -31,11 +31,20 @@ function StationCard({ station, allReadings }: { station: WeatherStation; allRea
     return `${Math.floor(hoursAgo / 24)}d ago`;
   };
 
+  const hasData = stationReadings.length > 0;
+
   return (
-    <Card>
+    <Card className={!hasData ? 'opacity-60' : ''}>
       <CardContent className="py-4">
         <div className="mb-4">
-          <h3 className="font-semibold text-lg mb-2">{station.name}</h3>
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="font-semibold text-lg">{station.name}</h3>
+            {!hasData && (
+              <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200 rounded">
+                No readings
+              </span>
+            )}
+          </div>
           <div className="flex items-center justify-between">
             <div className="flex gap-2 text-xs text-muted-foreground">
               {station.power && <span className="px-2 py-1 bg-muted rounded">{station.power}</span>}
