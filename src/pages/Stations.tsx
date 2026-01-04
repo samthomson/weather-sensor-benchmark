@@ -9,8 +9,6 @@ import { useAllLatestReadings, type LatestSensorData } from '@/hooks/useAllLates
 import { useQueryClient } from '@tanstack/react-query';
 
 function StationCard({ station, allReadings }: { station: WeatherStation; allReadings: LatestSensorData[] }) {
-  const now = Math.floor(Date.now() / 1000);
-
   // Filter readings for this specific station
   const stationReadings = allReadings.filter(r => r.pubkey === station.pubkey);
 
@@ -19,8 +17,9 @@ function StationCard({ station, allReadings }: { station: WeatherStation; allRea
     ? Math.max(...stationReadings.map(r => r.timestamp))
     : null;
 
-  // Format time ago
+  // Format time ago - calculate now fresh each time
   const formatTimeAgo = (timestamp: number) => {
+    const now = Math.floor(Date.now() / 1000);
     const secondsAgo = now - timestamp;
     const minutesAgo = Math.floor(secondsAgo / 60);
     const hoursAgo = Math.floor(minutesAgo / 60);
