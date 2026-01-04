@@ -8,7 +8,7 @@ import { useSensorReadings } from '@/hooks/useSensorReadings';
 function LatestReading({ pubkey, sensorType, sensorModel }: { pubkey: string; sensorType: string; sensorModel: string }) {
   const now = Math.floor(Date.now() / 1000);
   const since = now - (60 * 60); // Last hour
-  
+
   const { data: readings } = useSensorReadings({
     pubkey,
     sensorType,
@@ -99,29 +99,22 @@ const Stations = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    {station.sensorModels.map((model) => (
-                      <div key={model.model} className="flex items-center justify-between py-2 border-t first:border-0">
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium text-sm">{model.model}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {model.types.join(', ')}
-                          </span>
+                  <div className="grid gap-2">
+                    {station.sensorModels.flatMap((model) =>
+                      model.types.map((type) => (
+                        <div key={`${model.model}-${type}`} className="flex items-center justify-between py-2 border-t first:border-0">
+                          <div className="flex items-center gap-3">
+                            <span className="font-medium text-sm">{model.model}</span>
+                            <span className="text-xs text-muted-foreground">{type}</span>
+                          </div>
+                          <LatestReading
+                            pubkey={station.pubkey}
+                            sensorType={type}
+                            sensorModel={model.model}
+                          />
                         </div>
-                        <div className="flex gap-4">
-                          {model.types.map((type) => (
-                            <div key={type} className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">{type}:</span>
-                              <LatestReading
-                                pubkey={station.pubkey}
-                                sensorType={type}
-                                sensorModel={model.model}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
