@@ -27,16 +27,16 @@ export function Header() {
           <nav className="flex items-center gap-6">
             <Link
               to="/stations"
-              className={`text-sm font-medium hover:text-primary transition-colors ${
-                isActive('/stations') ? 'text-primary border-b-2 border-primary pb-1' : ''
+              className={`text-sm font-medium hover:text-primary transition-colors pb-1 ${
+                isActive('/stations') ? 'text-primary border-b-2 border-primary' : 'border-b-2 border-transparent'
               }`}
             >
               Stations
             </Link>
             <Link
               to="/benchmark"
-              className={`text-sm font-medium hover:text-primary transition-colors ${
-                isActive('/benchmark') ? 'text-primary border-b-2 border-primary pb-1' : ''
+              className={`text-sm font-medium hover:text-primary transition-colors pb-1 ${
+                isActive('/benchmark') ? 'text-primary border-b-2 border-primary' : 'border-b-2 border-transparent'
               }`}
             >
               Benchmark

@@ -13,19 +13,19 @@ const Index = () => {
       <Header />
 
       <main className="container mx-auto px-4 py-16">
-        <div className="max-w-md mx-auto space-y-4">
-          <h2 className="text-3xl font-bold text-center mb-8">Weather Stations</h2>
+        <div className="max-w-md mx-auto space-y-6">
+          <h2 className="text-3xl font-bold text-center mb-12">Weather Stations</h2>
 
           <Link to="/stations">
-            <div className="p-4 border rounded-lg hover:bg-accent transition-colors cursor-pointer">
-              <h3 className="font-semibold">Stations</h3>
+            <div className="p-6 border rounded-lg hover:bg-accent transition-colors cursor-pointer">
+              <h3 className="font-semibold text-lg mb-1">Stations</h3>
               <p className="text-sm text-muted-foreground">View all weather stations and sensors</p>
             </div>
           </Link>
 
           <Link to="/benchmark">
-            <div className="p-4 border rounded-lg hover:bg-accent transition-colors cursor-pointer">
-              <h3 className="font-semibold">Benchmark</h3>
+            <div className="p-6 border rounded-lg hover:bg-accent transition-colors cursor-pointer">
+              <h3 className="font-semibold text-lg mb-1">Benchmark</h3>
               <p className="text-sm text-muted-foreground">Compare sensor performance across stations</p>
             </div>
           </Link>
