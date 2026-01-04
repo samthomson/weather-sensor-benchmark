@@ -5,16 +5,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/Header';
 import { RefreshCw } from 'lucide-react';
 import { useWeatherStations, type WeatherStation } from '@/hooks/useWeatherStations';
-import { useLatestStationReadings } from '@/hooks/useLatestStationReadings';
+import { useAllLatestReadings, type LatestSensorData } from '@/hooks/useAllLatestReadings';
 import { useQueryClient } from '@tanstack/react-query';
 
-function StationCard({ station }: { station: WeatherStation }) {
-  const { data: latestReadings, isLoading } = useLatestStationReadings(station.pubkey);
+function StationCard({ station, allReadings }: { station: WeatherStation; allReadings: LatestSensorData[] }) {
   const now = Math.floor(Date.now() / 1000);
 
+  // Filter readings for this specific station
+  const stationReadings = allReadings.filter(r => r.pubkey === station.pubkey);
+
   // Get the most recent timestamp from any sensor
-  const latestTimestamp = latestReadings && latestReadings.length > 0
-    ? Math.max(...latestReadings.map(r => r.timestamp))
+  const latestTimestamp = stationReadings.length > 0
+    ? Math.max(...stationReadings.map(r => r.timestamp))
     : null;
 
   // Format time ago
@@ -54,45 +56,35 @@ function StationCard({ station }: { station: WeatherStation }) {
           </div>
         </div>
 
-        {isLoading && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-          </div>
-        )}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {station.sensorModels.flatMap((model) =>
+            model.types.map((type) => {
+              const reading = stationReadings.find(
+                r => r.sensorType === type && r.sensorModel === model.model
+              );
 
-        {!isLoading && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {station.sensorModels.flatMap((model) =>
-              model.types.map((type) => {
-                const reading = latestReadings?.find(
-                  r => r.sensorType === type && r.sensorModel === model.model
-                );
-
-                return (
-                  <div
-                    key={`${model.model}-${type}`}
-                    className="border rounded-lg p-3 hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="text-xs text-muted-foreground mb-1">{type}</div>
-                    {reading ? (
-                      <div className="text-lg font-semibold">
-                        {reading.value.toFixed(1)}
-                        <span className="text-xs font-normal text-muted-foreground ml-1">
-                          {reading.unit}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="text-sm text-muted-foreground">—</div>
-                    )}
-                    <div className="text-xs text-muted-foreground mt-1">{model.model}</div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
+              return (
+                <div
+                  key={`${model.model}-${type}`}
+                  className="border rounded-lg p-3 hover:bg-accent/50 transition-colors"
+                >
+                  <div className="text-xs text-muted-foreground mb-1">{type}</div>
+                  {reading ? (
+                    <div className="text-lg font-semibold">
+                      {reading.value.toFixed(1)}
+                      <span className="text-xs font-normal text-muted-foreground ml-1">
+                        {reading.unit}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">—</div>
+                  )}
+                  <div className="text-xs text-muted-foreground mt-1">{model.model}</div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -105,12 +97,20 @@ const Stations = () => {
   });
 
   const queryClient = useQueryClient();
-  const { data: stations, isLoading } = useWeatherStations();
+  const { data: stations, isLoading: stationsLoading } = useWeatherStations();
+
+  // Get all station pubkeys
+  const pubkeys = stations?.map(s => s.pubkey) || [];
+
+  // Fetch all readings in a single query
+  const { data: allReadings = [], isLoading: readingsLoading } = useAllLatestReadings(pubkeys);
+
+  const isLoading = stationsLoading || readingsLoading;
 
   const handleRefresh = () => {
     // Invalidate all station-related queries
     queryClient.invalidateQueries({ queryKey: ['weather-stations'] });
-    queryClient.invalidateQueries({ queryKey: ['latest-station-readings'] });
+    queryClient.invalidateQueries({ queryKey: ['all-latest-readings'] });
   };
 
   return (
@@ -156,7 +156,7 @@ const Stations = () => {
         {!isLoading && stations && stations.length > 0 && (
           <div className="grid md:grid-cols-2 gap-4">
             {stations.map((station) => (
-              <StationCard key={station.pubkey} station={station} />
+              <StationCard key={station.pubkey} station={station} allReadings={allReadings} />
             ))}
           </div>
         )}
