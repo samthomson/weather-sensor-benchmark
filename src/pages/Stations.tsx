@@ -12,6 +12,11 @@ function StationCard({ station }: { station: WeatherStation }) {
   const { data: latestReadings, isLoading } = useLatestStationReadings(station.pubkey);
   const now = Math.floor(Date.now() / 1000);
 
+  // Get the most recent timestamp from any sensor
+  const latestTimestamp = latestReadings && latestReadings.length > 0
+    ? Math.max(...latestReadings.map(r => r.timestamp))
+    : null;
+
   // Format time ago
   const formatTimeAgo = (timestamp: number) => {
     const secondsAgo = now - timestamp;
@@ -27,27 +32,32 @@ function StationCard({ station }: { station: WeatherStation }) {
   return (
     <Card>
       <CardContent className="py-4">
-        <div className="flex items-start justify-between mb-4">
-          <div>
+        <div className="mb-4">
+          <div className="flex items-start justify-between mb-2">
             <h3 className="font-semibold text-lg">{station.name}</h3>
-            <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
-              {station.power && <span>Power: {station.power}</span>}
-              {station.connectivity && <span>Connectivity: {station.connectivity}</span>}
-              {station.geohash && <span>Location: {station.geohash}</span>}
-            </div>
+            {latestTimestamp && (
+              <span className="text-xs text-muted-foreground">
+                {formatTimeAgo(latestTimestamp)}
+              </span>
+            )}
+          </div>
+          <div className="flex gap-3 text-xs text-muted-foreground">
+            {station.power && <span>{station.power}</span>}
+            {station.connectivity && <span>{station.connectivity}</span>}
+            {station.geohash && <span>{station.geohash}</span>}
           </div>
         </div>
 
         {isLoading && (
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
           </div>
         )}
 
         {!isLoading && (
-          <div className="grid gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {station.sensorModels.flatMap((model) =>
               model.types.map((type) => {
                 const reading = latestReadings?.find(
@@ -55,19 +65,22 @@ function StationCard({ station }: { station: WeatherStation }) {
                 );
 
                 return (
-                  <div key={`${model.model}-${type}`} className="flex items-center justify-between py-2 border-t first:border-0">
-                    <div className="flex items-center gap-3">
-                      <span className="font-medium text-sm">{model.model}</span>
-                      <span className="text-xs text-muted-foreground">{type}</span>
-                    </div>
+                  <div
+                    key={`${model.model}-${type}`}
+                    className="border rounded-lg p-3 hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="text-xs text-muted-foreground mb-1">{type}</div>
                     {reading ? (
-                      <span className="text-xs">
-                        <span className="font-medium">{reading.value.toFixed(1)}{reading.unit}</span>
-                        <span className="text-muted-foreground ml-2">{formatTimeAgo(reading.timestamp)}</span>
-                      </span>
+                      <div className="text-lg font-semibold">
+                        {reading.value.toFixed(1)}
+                        <span className="text-xs font-normal text-muted-foreground ml-1">
+                          {reading.unit}
+                        </span>
+                      </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">No data</span>
+                      <div className="text-sm text-muted-foreground">—</div>
                     )}
+                    <div className="text-xs text-muted-foreground mt-1">{model.model}</div>
                   </div>
                 );
               })
@@ -135,7 +148,7 @@ const Stations = () => {
         )}
 
         {!isLoading && stations && stations.length > 0 && (
-          <div className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
             {stations.map((station) => (
               <StationCard key={station.pubkey} station={station} />
             ))}
