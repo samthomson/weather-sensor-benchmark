@@ -22,7 +22,7 @@ import { ComparisonView } from '@/components/ComparisonView';
 
 const Benchmark = () => {
   useSeoMeta({
-    title: 'Benchmark - Weather Sensor Benchmark',
+    title: 'Benchmark - Weather Stations',
     description: 'Compare weather sensors across multiple weather stations',
   });
 

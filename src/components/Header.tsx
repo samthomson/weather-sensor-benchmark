@@ -1,7 +1,13 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { BarChart3 } from 'lucide-react';
 
 export function Header() {
+  const location = useLocation();
+
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+
   return (
     <header className="border-b sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 py-4">
@@ -10,18 +16,28 @@ export function Header() {
             <BarChart3 className="h-6 w-6" />
             <div>
               <h1 className="text-2xl font-bold">
-                Weather Sensor Benchmark
+                Weather Stations
               </h1>
               <p className="text-sm text-muted-foreground">
-                Compare sensors across multiple weather stations
+                Monitor and compare sensor performance
               </p>
             </div>
           </Link>
-          
+
           <nav className="flex items-center gap-6">
-            <Link 
-              to="/benchmark" 
-              className="text-sm font-medium hover:text-primary transition-colors"
+            <Link
+              to="/stations"
+              className={`text-sm font-medium hover:text-primary transition-colors ${
+                isActive('/stations') ? 'text-primary border-b-2 border-primary pb-1' : ''
+              }`}
+            >
+              Stations
+            </Link>
+            <Link
+              to="/benchmark"
+              className={`text-sm font-medium hover:text-primary transition-colors ${
+                isActive('/benchmark') ? 'text-primary border-b-2 border-primary pb-1' : ''
+              }`}
             >
               Benchmark
             </Link>
