@@ -56,6 +56,9 @@ function StationCard({ station, allReadings }: { station: WeatherStation; allRea
               </span>
             )}
           </div>
+          {station.description && (
+            <p className="text-sm text-muted-foreground mb-2">{station.description}</p>
+          )}
           <div className="flex items-center justify-between">
             <div className="flex gap-2 text-xs text-muted-foreground">
               {station.power && <span className="px-2 py-1 bg-muted rounded">{station.power}</span>}

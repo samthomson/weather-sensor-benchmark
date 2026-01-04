@@ -10,6 +10,7 @@ export interface SensorModel {
 export interface WeatherStation {
   pubkey: string;
   name: string;
+  description?: string;
   geohash?: string;
   power?: string;
   connectivity?: string;
@@ -35,6 +36,7 @@ function validateWeatherStationEvent(event: NostrEvent): boolean {
  */
 function parseWeatherStation(event: NostrEvent): WeatherStation {
   const name = event.tags.find(([tag]) => tag === 'name')?.[1] || 'Unknown Station';
+  const description = event.tags.find(([tag]) => tag === 'description')?.[1];
   const geohash = event.tags.find(([tag]) => tag === 'g')?.[1];
   const power = event.tags.find(([tag]) => tag === 'power')?.[1];
   const connectivity = event.tags.find(([tag]) => tag === 'connectivity')?.[1];
@@ -62,6 +64,7 @@ function parseWeatherStation(event: NostrEvent): WeatherStation {
   return {
     pubkey: event.pubkey,
     name,
+    description,
     geohash,
     power,
     connectivity,
