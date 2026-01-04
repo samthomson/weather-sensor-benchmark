@@ -33,18 +33,24 @@ function StationCard({ station }: { station: WeatherStation }) {
     <Card>
       <CardContent className="py-4">
         <div className="mb-4">
-          <div className="flex items-start justify-between mb-2">
-            <h3 className="font-semibold text-lg">{station.name}</h3>
+          <h3 className="font-semibold text-lg mb-2">{station.name}</h3>
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2 text-xs text-muted-foreground">
+              {station.power && <span className="px-2 py-1 bg-muted rounded">{station.power}</span>}
+              {station.connectivity && <span className="px-2 py-1 bg-muted rounded">{station.connectivity}</span>}
+              {station.geohash && <span className="px-2 py-1 bg-muted rounded">{station.geohash}</span>}
+            </div>
             {latestTimestamp && (
               <span className="text-xs text-muted-foreground">
-                {formatTimeAgo(latestTimestamp)}
+                {new Date(latestTimestamp * 1000).toLocaleString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}{' '}
+                <span className="text-muted-foreground/70">({formatTimeAgo(latestTimestamp)})</span>
               </span>
             )}
-          </div>
-          <div className="flex gap-3 text-xs text-muted-foreground">
-            {station.power && <span>{station.power}</span>}
-            {station.connectivity && <span>{station.connectivity}</span>}
-            {station.geohash && <span>{station.geohash}</span>}
           </div>
         </div>
 
