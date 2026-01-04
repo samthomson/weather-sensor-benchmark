@@ -7,19 +7,23 @@ import { useSensorReadings } from '@/hooks/useSensorReadings';
 
 function LatestReading({ pubkey, sensorType, sensorModel }: { pubkey: string; sensorType: string; sensorModel: string }) {
   const now = Math.floor(Date.now() / 1000);
-  const since = now - (60 * 60); // Last hour
+  const since = now - (24 * 60 * 60); // Last 24 hours
 
-  const { data: readings } = useSensorReadings({
+  const { data: readings, isLoading } = useSensorReadings({
     pubkey,
     sensorType,
     sensorModel,
     since,
   });
 
+  if (isLoading) {
+    return <Skeleton className="h-4 w-24" />;
+  }
+
   const latest = readings?.[readings.length - 1];
 
   if (!latest) {
-    return <span className="text-xs text-muted-foreground">—</span>;
+    return <span className="text-xs text-muted-foreground">No data</span>;
   }
 
   // Get unit for this sensor type
@@ -36,7 +40,18 @@ function LatestReading({ pubkey, sensorType, sensorModel }: { pubkey: string; se
   // Format time ago
   const secondsAgo = now - latest.timestamp;
   const minutesAgo = Math.floor(secondsAgo / 60);
-  const timeAgo = minutesAgo < 1 ? 'just now' : `${minutesAgo}m ago`;
+  const hoursAgo = Math.floor(minutesAgo / 60);
+
+  let timeAgo;
+  if (minutesAgo < 1) {
+    timeAgo = 'just now';
+  } else if (minutesAgo < 60) {
+    timeAgo = `${minutesAgo}m ago`;
+  } else if (hoursAgo < 24) {
+    timeAgo = `${hoursAgo}h ago`;
+  } else {
+    timeAgo = `${Math.floor(hoursAgo / 24)}d ago`;
+  }
 
   return (
     <span className="text-xs">
