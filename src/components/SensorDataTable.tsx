@@ -25,6 +25,9 @@ function getSensorUnit(sensorType: string): string {
     pm25: 'µg/m³',
     pm10: 'µg/m³',
     air_quality: 'raw',
+    pressure: 'hPa',
+    light: 'lux',
+    rain: 'raw',
   };
   return units[sensorType] || '';
 }

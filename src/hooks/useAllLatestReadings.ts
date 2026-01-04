@@ -58,27 +58,32 @@ export function useAllLatestReadings(pubkeys: string[]) {
       const sortedEvents = events.sort((a, b) => b.created_at - a.created_at);
 
       for (const event of sortedEvents) {
-        const sensorTags = event.tags.filter(([tag]) =>
-          ['temp', 'humidity', 'pm1', 'pm25', 'pm10', 'air_quality', 'pressure'].includes(tag)
+        // Get all tags that have 3 elements [tag, value, model] and the value is numeric
+        // Skip standard Nostr tags like 't', 'a', 'e', 'p', 'd'
+        const standardTags = ['t', 'a', 'e', 'p', 'd', 'alt', 'content-warning', 'subject', 'client'];
+
+        const sensorTags = event.tags.filter(([tag, value, model]) =>
+          !standardTags.includes(tag) && // Not a standard Nostr tag
+          value !== undefined && // Has a value
+          model !== undefined && // Has a model
+          !isNaN(parseFloat(value)) // Value is numeric
         );
 
         for (const [sensorType, value, model] of sensorTags) {
           const key = `${event.pubkey}-${sensorType}-${model}`;
 
           // Only store if we haven't seen this exact sensor yet (keeps the latest)
-          if (!seenKeys.has(key) && value) {
+          if (!seenKeys.has(key)) {
             const numValue = parseFloat(value);
-            if (!isNaN(numValue)) {
-              allReadings.push({
-                pubkey: event.pubkey,
-                sensorType,
-                sensorModel: model || 'unknown',
-                value: numValue,
-                timestamp: event.created_at,
-                unit: getUnit(sensorType),
-              });
-              seenKeys.add(key);
-            }
+            allReadings.push({
+              pubkey: event.pubkey,
+              sensorType,
+              sensorModel: model,
+              value: numValue,
+              timestamp: event.created_at,
+              unit: getUnit(sensorType),
+            });
+            seenKeys.add(key);
           }
         }
       }
@@ -99,6 +104,8 @@ function getUnit(sensorType: string): string {
     pm10: 'µg/m³',
     air_quality: 'raw',
     pressure: 'hPa',
+    light: 'lux',
+    rain: 'raw',
   };
   return units[sensorType] || '';
 }

@@ -45,6 +45,9 @@ const SENSOR_TYPE_STYLES: Record<string, string> = {
   'temp': '0',     // solid
   'humidity': '5 5', // dashed
   'air_quality': '2 2', // dotted
+  'pressure': '8 4', // long dash
+  'light': '0',    // solid
+  'rain': '5 5',   // dashed
 };
 
 // Get sensor unit based on type
@@ -56,6 +59,9 @@ function getSensorUnit(sensorType: string): string {
     pm25: 'µg/m³',
     pm10: 'µg/m³',
     air_quality: 'raw',
+    pressure: 'hPa',
+    light: 'lux',
+    rain: 'raw',
   };
   return units[sensorType] || '';
 }

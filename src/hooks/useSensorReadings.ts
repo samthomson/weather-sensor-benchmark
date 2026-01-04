@@ -29,18 +29,18 @@ function validateSensorReadingEvent(event: NostrEvent): boolean {
 function parseSensorReadings(event: NostrEvent): SensorReading[] {
   const readings: SensorReading[] = [];
 
-  // Known sensor types
-  const sensorTypes = ['temp', 'humidity', 'pm1', 'pm25', 'pm10', 'air_quality'];
+  // Skip standard Nostr tags, process all other numeric tags as sensors
+  const standardTags = ['t', 'a', 'e', 'p', 'd', 'alt', 'content-warning', 'subject', 'client'];
 
   for (const [tag, value, model] of event.tags) {
-    if (sensorTypes.includes(tag) && value) {
+    if (!standardTags.includes(tag) && value && model) {
       const numValue = parseFloat(value);
       if (!isNaN(numValue)) {
         readings.push({
           timestamp: event.created_at,
           sensorType: tag,
           value: numValue,
-          model: model || 'unknown',
+          model: model,
           event,
         });
       }
