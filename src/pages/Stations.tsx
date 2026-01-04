@@ -16,6 +16,12 @@ function LatestReading({ pubkey, sensorType, sensorModel }: { pubkey: string; se
     since,
   });
 
+  console.log(`LatestReading for ${sensorType} (${sensorModel}):`, {
+    pubkey: pubkey.substring(0, 8),
+    readingsCount: readings?.length || 0,
+    isLoading
+  });
+
   if (isLoading) {
     return <Skeleton className="h-4 w-24" />;
   }
@@ -23,6 +29,7 @@ function LatestReading({ pubkey, sensorType, sensorModel }: { pubkey: string; se
   const latest = readings?.[readings.length - 1];
 
   if (!latest) {
+    console.log(`No data found for ${sensorType} (${sensorModel}) from pubkey ${pubkey.substring(0, 8)}`);
     return <span className="text-xs text-muted-foreground">No data</span>;
   }
 
