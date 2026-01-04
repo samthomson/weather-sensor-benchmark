@@ -2,8 +2,9 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil, Check, X } from 'lucide-react';
 import { AddSensorDialog } from './AddSensorDialog';
 import { SensorChart } from './SensorChart';
 import { SensorDataTable } from './SensorDataTable';
@@ -19,6 +20,7 @@ interface ComparisonViewProps {
   stations: WeatherStation[];
   onAddSensor: (sensor: Omit<SensorSelection, 'id'>) => void;
   onRemoveSensor: (sensorId: string) => void;
+  onUpdateName: (newName: string) => void;
   onDelete: () => void;
 }
 
@@ -41,9 +43,12 @@ export function ComparisonView({
   stations,
   onAddSensor,
   onRemoveSensor,
+  onUpdateName,
   onDelete,
 }: ComparisonViewProps) {
   const [timeRange, setTimeRange] = useState<'1h' | '24h'>('24h');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(comparison.name);
 
   // Calculate time range - memoize to prevent constant re-queries
   const { since, until } = useMemo(() => {
@@ -88,12 +93,55 @@ export function ComparisonView({
     return filterMultipleSensorOutliers(data, sensorNames);
   }, [data, sensorNames]);
 
+  const handleSaveName = () => {
+    if (editedName.trim() && editedName !== comparison.name) {
+      onUpdateName(editedName.trim());
+    }
+    setIsEditingName(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditedName(comparison.name);
+    setIsEditingName(false);
+  };
+
   return (
     <Card>
       <CardHeader>
         <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-2xl">{comparison.name}</CardTitle>
+          <div className="flex-1">
+            {isEditingName ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveName();
+                    if (e.key === 'Escape') handleCancelEdit();
+                  }}
+                  className="text-2xl font-bold h-auto py-1"
+                  autoFocus
+                />
+                <Button variant="ghost" size="icon" onClick={handleSaveName}>
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleCancelEdit}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 group">
+                <CardTitle className="text-2xl">{comparison.name}</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsEditingName(true)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
             <CardDescription>
               {comparison.sensors.length} sensor{comparison.sensors.length !== 1 ? 's' : ''} selected
             </CardDescription>

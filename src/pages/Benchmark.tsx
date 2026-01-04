@@ -177,6 +177,7 @@ const Benchmark = () => {
                   stations={stations || []}
                   onAddSensor={(sensor) => addSensor(comparison.id, sensor)}
                   onRemoveSensor={(sensorId) => removeSensor(comparison.id, sensorId)}
+                  onUpdateName={(newName) => update(comparison.id, { name: newName })}
                   onDelete={() => remove(comparison.id)}
                 />
               ))}
