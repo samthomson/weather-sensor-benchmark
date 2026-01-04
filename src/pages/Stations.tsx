@@ -2,69 +2,77 @@ import { useSeoMeta } from '@unhead/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/Header';
-import { useWeatherStations } from '@/hooks/useWeatherStations';
-import { useSensorReadings } from '@/hooks/useSensorReadings';
+import { useWeatherStations, type WeatherStation } from '@/hooks/useWeatherStations';
+import { useLatestStationReadings } from '@/hooks/useLatestStationReadings';
 
-function LatestReading({ pubkey, sensorType, sensorModel }: { pubkey: string; sensorType: string; sensorModel: string }) {
+function StationCard({ station }: { station: WeatherStation }) {
+  const { data: latestReadings, isLoading } = useLatestStationReadings(station.pubkey);
   const now = Math.floor(Date.now() / 1000);
-  const since = now - (24 * 60 * 60); // Last 24 hours
-
-  const { data: readings, isLoading } = useSensorReadings({
-    pubkey,
-    sensorType,
-    sensorModel,
-    since,
-  });
-
-  console.log(`LatestReading for ${sensorType} (${sensorModel}):`, {
-    pubkey: pubkey.substring(0, 8),
-    readingsCount: readings?.length || 0,
-    isLoading
-  });
-
-  if (isLoading) {
-    return <Skeleton className="h-4 w-24" />;
-  }
-
-  const latest = readings?.[readings.length - 1];
-
-  if (!latest) {
-    console.log(`No data found for ${sensorType} (${sensorModel}) from pubkey ${pubkey.substring(0, 8)}`);
-    return <span className="text-xs text-muted-foreground">No data</span>;
-  }
-
-  // Get unit for this sensor type
-  const units: Record<string, string> = {
-    temp: '°C',
-    humidity: '%',
-    pm1: 'µg/m³',
-    pm25: 'µg/m³',
-    pm10: 'µg/m³',
-    air_quality: 'raw',
-  };
-  const unit = units[sensorType] || '';
 
   // Format time ago
-  const secondsAgo = now - latest.timestamp;
-  const minutesAgo = Math.floor(secondsAgo / 60);
-  const hoursAgo = Math.floor(minutesAgo / 60);
+  const formatTimeAgo = (timestamp: number) => {
+    const secondsAgo = now - timestamp;
+    const minutesAgo = Math.floor(secondsAgo / 60);
+    const hoursAgo = Math.floor(minutesAgo / 60);
 
-  let timeAgo;
-  if (minutesAgo < 1) {
-    timeAgo = 'just now';
-  } else if (minutesAgo < 60) {
-    timeAgo = `${minutesAgo}m ago`;
-  } else if (hoursAgo < 24) {
-    timeAgo = `${hoursAgo}h ago`;
-  } else {
-    timeAgo = `${Math.floor(hoursAgo / 24)}d ago`;
-  }
+    if (minutesAgo < 1) return 'just now';
+    if (minutesAgo < 60) return `${minutesAgo}m ago`;
+    if (hoursAgo < 24) return `${hoursAgo}h ago`;
+    return `${Math.floor(hoursAgo / 24)}d ago`;
+  };
 
   return (
-    <span className="text-xs">
-      <span className="font-medium">{latest.value.toFixed(1)}{unit}</span>
-      <span className="text-muted-foreground ml-2">{timeAgo}</span>
-    </span>
+    <Card>
+      <CardContent className="py-4">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-lg">{station.name}</h3>
+            <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
+              {station.power && <span>Power: {station.power}</span>}
+              {station.connectivity && <span>Connectivity: {station.connectivity}</span>}
+              {station.geohash && <span>Location: {station.geohash}</span>}
+            </div>
+          </div>
+        </div>
+
+        {isLoading && (
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        )}
+
+        {!isLoading && (
+          <div className="grid gap-2">
+            {station.sensorModels.flatMap((model) =>
+              model.types.map((type) => {
+                const reading = latestReadings?.find(
+                  r => r.sensorType === type && r.sensorModel === model.model
+                );
+
+                return (
+                  <div key={`${model.model}-${type}`} className="flex items-center justify-between py-2 border-t first:border-0">
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium text-sm">{model.model}</span>
+                      <span className="text-xs text-muted-foreground">{type}</span>
+                    </div>
+                    {reading ? (
+                      <span className="text-xs">
+                        <span className="font-medium">{reading.value.toFixed(1)}{reading.unit}</span>
+                        <span className="text-muted-foreground ml-2">{formatTimeAgo(reading.timestamp)}</span>
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No data</span>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -108,38 +116,7 @@ const Stations = () => {
         {!isLoading && stations && stations.length > 0 && (
           <div className="space-y-4">
             {stations.map((station) => (
-              <Card key={station.pubkey}>
-                <CardContent className="py-4">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="font-semibold text-lg">{station.name}</h3>
-                      <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
-                        {station.power && <span>Power: {station.power}</span>}
-                        {station.connectivity && <span>Connectivity: {station.connectivity}</span>}
-                        {station.geohash && <span>Location: {station.geohash}</span>}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2">
-                    {station.sensorModels.flatMap((model) =>
-                      model.types.map((type) => (
-                        <div key={`${model.model}-${type}`} className="flex items-center justify-between py-2 border-t first:border-0">
-                          <div className="flex items-center gap-3">
-                            <span className="font-medium text-sm">{model.model}</span>
-                            <span className="text-xs text-muted-foreground">{type}</span>
-                          </div>
-                          <LatestReading
-                            pubkey={station.pubkey}
-                            sensorType={type}
-                            sensorModel={model.model}
-                          />
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <StationCard key={station.pubkey} station={station} />
             ))}
           </div>
         )}
