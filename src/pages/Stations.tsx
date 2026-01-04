@@ -1,9 +1,12 @@
 import { useSeoMeta } from '@unhead/react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/Header';
+import { RefreshCw } from 'lucide-react';
 import { useWeatherStations, type WeatherStation } from '@/hooks/useWeatherStations';
 import { useLatestStationReadings } from '@/hooks/useLatestStationReadings';
+import { useQueryClient } from '@tanstack/react-query';
 
 function StationCard({ station }: { station: WeatherStation }) {
   const { data: latestReadings, isLoading } = useLatestStationReadings(station.pubkey);
@@ -82,18 +85,36 @@ const Stations = () => {
     description: 'View all weather stations and their sensors',
   });
 
+  const queryClient = useQueryClient();
   const { data: stations, isLoading } = useWeatherStations();
+
+  const handleRefresh = () => {
+    // Invalidate all station-related queries
+    queryClient.invalidateQueries({ queryKey: ['weather-stations'] });
+    queryClient.invalidateQueries({ queryKey: ['latest-station-readings'] });
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold">Weather Stations</h2>
-          <p className="text-muted-foreground">
-            Overview of all active stations and their sensors
-          </p>
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Weather Stations</h2>
+            <p className="text-muted-foreground">
+              Overview of all active stations and their sensors
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
         </div>
 
         {isLoading && (
