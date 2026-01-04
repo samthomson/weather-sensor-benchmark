@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/Header';
 import { RefreshCw } from 'lucide-react';
@@ -128,6 +130,7 @@ const Stations = () => {
     description: 'View all weather stations and their sensors',
   });
 
+  const [hideInactive, setHideInactive] = useState(true);
   const queryClient = useQueryClient();
   const { data: stations, isLoading: stationsLoading } = useWeatherStations();
 
@@ -138,6 +141,13 @@ const Stations = () => {
   const { data: allReadings = [], isLoading: readingsLoading } = useAllLatestReadings(pubkeys);
 
   const isLoading = stationsLoading || readingsLoading;
+
+  // Filter stations based on hideInactive setting
+  const filteredStations = stations?.filter(station => {
+    if (!hideInactive) return true;
+    const hasReadings = allReadings.some(r => r.pubkey === station.pubkey);
+    return hasReadings;
+  }) || [];
 
   const handleRefresh = () => {
     // Invalidate all station-related queries
@@ -157,15 +167,30 @@ const Stations = () => {
               Overview of all active stations and their sensors
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            className="gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="hide-inactive"
+                checked={hideInactive}
+                onCheckedChange={(checked) => setHideInactive(checked as boolean)}
+              />
+              <Label
+                htmlFor="hide-inactive"
+                className="text-sm font-normal cursor-pointer"
+              >
+                Hide stations with no readings
+              </Label>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              className="gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {isLoading && (
@@ -185,12 +210,22 @@ const Stations = () => {
           </Card>
         )}
 
-        {!isLoading && stations && stations.length > 0 && (
+        {!isLoading && filteredStations.length > 0 && (
           <div className="grid md:grid-cols-2 gap-4">
-            {stations.map((station) => (
+            {filteredStations.map((station) => (
               <StationCard key={station.pubkey} station={station} allReadings={allReadings} />
             ))}
           </div>
+        )}
+
+        {!isLoading && stations && stations.length > 0 && filteredStations.length === 0 && (
+          <Card className="border-dashed">
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">
+                All stations are hidden. Uncheck "Hide stations with no readings" to see them.
+              </p>
+            </CardContent>
+          </Card>
         )}
       </main>
 
