@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,17 @@ import { useAllLatestReadings, type LatestSensorData } from '@/hooks/useAllLates
 import { useQueryClient } from '@tanstack/react-query';
 
 function StationCard({ station, allReadings }: { station: WeatherStation; allReadings: LatestSensorData[] }) {
+  // Force re-render every minute to update relative timestamps
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTick(t => t + 1);
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Filter readings for this specific station
   const stationReadings = allReadings.filter(r => r.pubkey === station.pubkey);
 
