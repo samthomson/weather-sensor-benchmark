@@ -65,34 +65,43 @@ function StationCard({ station, allReadings }: { station: WeatherStation; allRea
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {station.sensorModels.flatMap((model) =>
-            model.types.map((type) => {
-              const reading = stationReadings.find(
-                r => r.sensorType === type && r.sensorModel === model.model
-              );
+        <div className="flex flex-wrap gap-3">
+          {station.sensorModels.map((model) => (
+            <div
+              key={model.model}
+              className="border-2 rounded-lg p-2 bg-muted/30"
+            >
+              <div className="text-xs font-medium text-muted-foreground mb-2 px-1">
+                {model.model}
+              </div>
+              <div className="flex gap-2">
+                {model.types.map((type) => {
+                  const reading = stationReadings.find(
+                    r => r.sensorType === type && r.sensorModel === model.model
+                  );
 
-              return (
-                <div
-                  key={`${model.model}-${type}`}
-                  className="border rounded-lg p-3 hover:bg-accent/50 transition-colors"
-                >
-                  <div className="text-xs text-muted-foreground mb-1">{type}</div>
-                  {reading ? (
-                    <div className="text-lg font-semibold">
-                      {reading.value.toFixed(1)}
-                      <span className="text-xs font-normal text-muted-foreground ml-1">
-                        {reading.unit}
-                      </span>
+                  return (
+                    <div
+                      key={type}
+                      className="border border-dashed border-muted-foreground/20 rounded p-2 bg-background min-w-[80px] hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="text-xs text-muted-foreground mb-1">{type}</div>
+                      {reading ? (
+                        <div className="text-base font-semibold">
+                          {reading.value.toFixed(1)}
+                          <span className="text-xs font-normal text-muted-foreground ml-1">
+                            {reading.unit}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">—</div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground">—</div>
-                  )}
-                  <div className="text-xs text-muted-foreground mt-1">{model.model}</div>
-                </div>
-              );
-            })
-          )}
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
