@@ -1,23 +1,9 @@
-import { useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Plus, Zap, BarChart3, Database } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useWeatherStations } from '@/hooks/useWeatherStations';
-import { useComparisons } from '@/hooks/useComparisons';
-import { ComparisonView } from '@/components/ComparisonView';
+import { Button } from '@/components/ui/button';
+import { BarChart3, ArrowRight } from 'lucide-react';
+import { Header } from '@/components/Header';
 
 const Index = () => {
   useSeoMeta({
@@ -25,194 +11,93 @@ const Index = () => {
     description: 'Compare weather sensors across multiple weather stations',
   });
 
-  const [newComparisonName, setNewComparisonName] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  const { data: stations, isLoading: stationsLoading } = useWeatherStations();
-  const { comparisons, create, addSensor, removeSensor, remove } = useComparisons();
-
-  const handleCreateComparison = () => {
-    if (!newComparisonName.trim()) return;
-    create(newComparisonName.trim());
-    setNewComparisonName('');
-    setDialogOpen(false);
-  };
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <BarChart3 className="h-6 w-6" />
-            <div>
-              <h1 className="text-2xl font-bold">
-                Weather Sensor Benchmark
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Compare sensors across multiple weather stations
-              </p>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Database className="h-4 w-4" />
-                Weather Stations
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {stationsLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <p className="text-2xl font-semibold">{stations?.length || 0}</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Zap className="h-4 w-4" />
-                Total Sensors
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {stationsLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <p className="text-2xl font-semibold">
-                  {stations?.reduce((sum, s) => sum + (s.sensorModels?.length || 0), 0) || 0}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <BarChart3 className="h-4 w-4" />
-                Active Comparisons
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold">{comparisons.length}</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Comparisons Section */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">Sensor Comparisons</h2>
-              <p className="text-muted-foreground">
-                Create comparisons to benchmark sensors across different weather stations
-              </p>
+      <main className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto">
+          {/* Hero Section */}
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+              <BarChart3 className="h-8 w-8 text-primary" />
             </div>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  New Comparison
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Comparison</DialogTitle>
-                  <DialogDescription>
-                    Give your comparison a descriptive name to identify it later.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Comparison Name</Label>
-                    <Input
-                      id="name"
-                      placeholder="e.g., Temperature Sensors Comparison"
-                      value={newComparisonName}
-                      onChange={(e) => setNewComparisonName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleCreateComparison();
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleCreateComparison} disabled={!newComparisonName.trim()}>
-                    Create Comparison
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <h2 className="text-4xl font-bold mb-4">
+              Weather Sensor Benchmark
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Compare and analyze weather sensor performance across multiple stations in real-time
+            </p>
           </div>
 
-          {/* Loading State */}
-          {stationsLoading && (
-            <div className="space-y-4">
-              <Skeleton className="h-[400px] w-full" />
-              <Skeleton className="h-[400px] w-full" />
-            </div>
-          )}
-
-          {/* Empty State */}
-          {!stationsLoading && comparisons.length === 0 && (
-            <Card className="border-dashed">
-              <CardContent className="py-16 px-8 text-center">
-                <div className="max-w-md mx-auto space-y-4">
-                  <h3 className="text-xl font-semibold">No Comparisons Yet</h3>
-                  <p className="text-muted-foreground">
-                    Create your first comparison to start benchmarking weather sensors across different stations.
-                  </p>
-                </div>
-              </CardContent>
+          {/* Features Grid */}
+          <div className="grid md:grid-cols-2 gap-6 mb-12">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Multi-Station Support</CardTitle>
+                <CardDescription>
+                  Track and compare data from multiple weather stations simultaneously
+                </CardDescription>
+              </CardHeader>
             </Card>
-          )}
 
-          {/* Comparisons List */}
-          {!stationsLoading && comparisons.length > 0 && (
-            <div className="space-y-6">
-              {comparisons.map((comparison) => (
-                <ComparisonView
-                  key={comparison.id}
-                  comparison={comparison}
-                  stations={stations || []}
-                  onAddSensor={(sensor) => addSensor(comparison.id, sensor)}
-                  onRemoveSensor={(sensorId) => removeSensor(comparison.id, sensorId)}
-                  onDelete={() => remove(comparison.id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Real-Time Data</CardTitle>
+                <CardDescription>
+                  Automatically fetches latest sensor readings from Nostr relays
+                </CardDescription>
+              </CardHeader>
+            </Card>
 
-        {/* No Stations Warning */}
-        {!stationsLoading && stations && stations.length === 0 && (
-          <Card className="border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20 mt-6">
-            <CardContent className="py-8 px-8 text-center">
-              <div className="max-w-md mx-auto space-y-4">
-                <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-100">
-                  No Weather Stations Found
-                </h3>
-                <p className="text-amber-800 dark:text-amber-200">
-                  No weather stations are currently publishing data to the relay. Make sure your weather stations are online and publishing to wss://relay.samt.st
-                </p>
-              </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Dual Time Ranges</CardTitle>
+                <CardDescription>
+                  View data from the last hour or last 24 hours with appropriate sampling
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Outlier Detection</CardTitle>
+                <CardDescription>
+                  Automatically filters invalid readings that spike by more than 300%
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+
+          {/* CTA */}
+          <div className="text-center">
+            <Link to="/benchmark">
+              <Button size="lg" className="gap-2">
+                Start Benchmarking
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+
+          {/* Info Section */}
+          <Card className="mt-12 border-muted">
+            <CardHeader>
+              <CardTitle className="text-base">How It Works</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <p>
+                This application queries the Nostr relay <code className="text-xs bg-muted px-1 py-0.5 rounded">wss://relay.samt.st</code> for weather station metadata and sensor readings.
+              </p>
+              <p>
+                Create comparisons to benchmark specific sensors across different weather stations. Each comparison supports multiple sensor models with chart and table views.
+              </p>
+              <p>
+                Supported sensor types: <code className="text-xs bg-muted px-1 py-0.5 rounded">temp</code>, <code className="text-xs bg-muted px-1 py-0.5 rounded">humidity</code>, <code className="text-xs bg-muted px-1 py-0.5 rounded">pm1</code>, <code className="text-xs bg-muted px-1 py-0.5 rounded">pm25</code>, <code className="text-xs bg-muted px-1 py-0.5 rounded">pm10</code>, <code className="text-xs bg-muted px-1 py-0.5 rounded">air_quality</code>
+              </p>
             </CardContent>
           </Card>
-        )}
+        </div>
       </main>
 
       {/* Footer */}
