@@ -30,7 +30,7 @@ const Benchmark = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: stations, isLoading: stationsLoading } = useWeatherStations();
-  const { comparisons, create, addSensor, removeSensor, remove } = useComparisons();
+  const { comparisons, create, update, addSensor, removeSensor, remove } = useComparisons();
 
   const handleCreateComparison = () => {
     if (!newComparisonName.trim()) return;
