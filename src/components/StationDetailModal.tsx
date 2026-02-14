@@ -15,6 +15,21 @@ interface StationDetailModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+function getUnit(sensorType: string): string {
+  const units: Record<string, string> = {
+    temp: '°C',
+    humidity: '%',
+    pm1: 'µg/m³',
+    pm25: 'µg/m³',
+    pm10: 'µg/m³',
+    air_quality: 'raw',
+    pressure: 'hPa',
+    light: 'lux',
+    rain: 'raw',
+  };
+  return units[sensorType] || '';
+}
+
 export function StationDetailModal({ station, readings, open, onOpenChange }: StationDetailModalProps) {
   const { nostr } = useNostr();
 
@@ -74,7 +89,7 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-2xl">{station.name}</DialogTitle>
           {station.description && (
@@ -82,21 +97,20 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
           )}
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Metadata */}
-          <div className="flex gap-2 text-xs">
-            {station.power && <span className="px-2 py-1 bg-muted rounded">{station.power}</span>}
-            {station.connectivity && <span className="px-2 py-1 bg-muted rounded">{station.connectivity}</span>}
-            {station.geohash && <span className="px-2 py-1 bg-muted rounded">{station.geohash}</span>}
-          </div>
+        {/* Metadata */}
+        <div className="flex gap-2 text-xs">
+          {station.power && <span className="px-2 py-1 bg-muted rounded">{station.power}</span>}
+          {station.connectivity && <span className="px-2 py-1 bg-muted rounded">{station.connectivity}</span>}
+          {station.geohash && <span className="px-2 py-1 bg-muted rounded">{station.geohash}</span>}
+        </div>
 
-          <Tabs defaultValue="latest" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="latest">Latest</TabsTrigger>
-              <TabsTrigger value="recent">Recent</TabsTrigger>
-            </TabsList>
+        <Tabs defaultValue="latest" className="w-full flex-1 flex flex-col">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="latest">Latest</TabsTrigger>
+            <TabsTrigger value="recent">Recent</TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="latest" className="space-y-6 mt-4">
+          <TabsContent value="latest" className="space-y-6 mt-4 flex-1 overflow-y-auto">
               {/* Sensor Models and their statuses */}
               {station.sensorModels.map((model) => {
                 const modelReadings = readingsByModel.get(model.model) || [];
@@ -158,12 +172,12 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
               })}
             </TabsContent>
 
-            <TabsContent value="recent" className="mt-4">
+            <TabsContent value="recent" className="mt-4 flex-1 overflow-y-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead>Sensors</TableHead>
+                    <TableHead className="w-[180px]">Timestamp</TableHead>
+                    <TableHead>Sensor Readings</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -176,17 +190,31 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
                         value !== undefined && 
                         model !== undefined &&
                         !isNaN(parseFloat(value))
-                      )
-                      .map(([tag, value]) => `${tag}: ${parseFloat(value).toFixed(1)}`)
-                      .join(', ');
+                      );
 
                     return (
                       <TableRow key={`${event.id}-${index}`}>
-                        <TableCell className="text-sm">
+                        <TableCell className="text-sm font-medium align-top">
                           {formatTime(event.created_at)}
                         </TableCell>
-                        <TableCell className="text-sm font-mono">
-                          {sensorData || 'No sensor data'}
+                        <TableCell>
+                          {sensorData.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {sensorData.map(([tag, value], i) => {
+                                const numValue = parseFloat(value);
+                                const unit = getUnit(tag);
+                                return (
+                                  <span key={i} className="text-xs px-2 py-1 bg-muted rounded">
+                                    <span className="font-medium">{tag}:</span>{' '}
+                                    <span className="font-semibold">{numValue.toFixed(1)}</span>
+                                    {unit && <span className="text-muted-foreground ml-0.5">{unit}</span>}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">No sensor data</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
