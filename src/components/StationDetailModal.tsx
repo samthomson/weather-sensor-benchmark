@@ -1,7 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
+import { useNostr } from '@nostrify/react';
+import { useQuery } from '@tanstack/react-query';
 import type { WeatherStation } from '@/hooks/useWeatherStations';
 import type { LatestSensorData } from '@/hooks/useAllLatestReadings';
 
@@ -13,6 +16,37 @@ interface StationDetailModalProps {
 }
 
 export function StationDetailModal({ station, readings, open, onOpenChange }: StationDetailModalProps) {
+  const { nostr } = useNostr();
+
+  // Fetch recent readings for this station
+  const { data: recentReadings = [] } = useQuery({
+    queryKey: ['station-recent-readings', station?.pubkey],
+    queryFn: async (c) => {
+      if (!station) return [];
+      
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const relay = nostr.relay('wss://relay.samt.st');
+      
+      const now = Math.floor(Date.now() / 1000);
+      const since = now - (24 * 60 * 60);
+      
+      const events = await relay.query(
+        [{
+          kinds: [4223],
+          authors: [station.pubkey],
+          '#t': ['weather'],
+          since,
+          limit: 30,
+        }],
+        { signal }
+      );
+      
+      return events.sort((a, b) => b.created_at - a.created_at);
+    },
+    enabled: open && station !== null,
+    staleTime: 30 * 1000,
+  });
+
   if (!station) return null;
 
   // Format timestamp
@@ -48,7 +82,7 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
           )}
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Metadata */}
           <div className="flex gap-2 text-xs">
             {station.power && <span className="px-2 py-1 bg-muted rounded">{station.power}</span>}
@@ -56,68 +90,118 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
             {station.geohash && <span className="px-2 py-1 bg-muted rounded">{station.geohash}</span>}
           </div>
 
-          {/* Sensor Models and their statuses */}
-          {station.sensorModels.map((model) => {
-            const modelReadings = readingsByModel.get(model.model) || [];
+          <Tabs defaultValue="latest" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="latest">Latest</TabsTrigger>
+              <TabsTrigger value="recent">Recent</TabsTrigger>
+            </TabsList>
 
-            return (
-              <div key={model.model} className="space-y-3">
-                <h3 className="font-semibold text-lg">{model.model}</h3>
-                
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Sensor Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Latest Value</TableHead>
-                      <TableHead className="text-right">Timestamp</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {model.types.map((type) => {
-                      const reading = modelReadings.find(r => r.sensorType === type);
-                      const status = model.statuses[type];
+            <TabsContent value="latest" className="space-y-6 mt-4">
+              {/* Sensor Models and their statuses */}
+              {station.sensorModels.map((model) => {
+                const modelReadings = readingsByModel.get(model.model) || [];
 
-                      return (
-                        <TableRow key={type}>
-                          <TableCell className="font-medium">{type}</TableCell>
-                          <TableCell>
-                            {status === 'ok' ? (
-                              <Badge variant="outline" className="gap-1 text-green-700 border-green-300 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950">
-                                <CheckCircle className="h-3 w-3" />
-                                OK
-                              </Badge>
-                            ) : status === '418' ? (
-                              <Badge variant="outline" className="gap-1 text-amber-700 border-amber-300 bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:bg-amber-950">
-                                <AlertCircle className="h-3 w-3" />
-                                Error
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-muted-foreground">
-                                Unknown
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {reading ? (
-                              <span className="font-medium">
-                                {reading.value.toFixed(1)} {reading.unit}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right text-xs text-muted-foreground">
-                            {reading ? formatTime(reading.timestamp) : '—'}
-                          </TableCell>
+                return (
+                  <div key={model.model} className="space-y-3">
+                    <h3 className="font-semibold text-lg">{model.model}</h3>
+                    
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Sensor Type</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Latest Value</TableHead>
+                          <TableHead className="text-right">Timestamp</TableHead>
                         </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            );
-          })}
+                      </TableHeader>
+                      <TableBody>
+                        {model.types.map((type) => {
+                          const reading = modelReadings.find(r => r.sensorType === type);
+                          const status = model.statuses[type];
+
+                          return (
+                            <TableRow key={type}>
+                              <TableCell className="font-medium">{type}</TableCell>
+                              <TableCell>
+                                {status === 'ok' ? (
+                                  <Badge variant="outline" className="gap-1 text-green-700 border-green-300 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950">
+                                    <CheckCircle className="h-3 w-3" />
+                                    OK
+                                  </Badge>
+                                ) : status === '418' ? (
+                                  <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:bg-amber-950">
+                                    418
+                                  </Badge>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {reading ? (
+                                  <span className="font-medium">
+                                    {reading.value.toFixed(1)} {reading.unit}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right text-xs text-muted-foreground">
+                                {reading ? formatTime(reading.timestamp) : '—'}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                );
+              })}
+            </TabsContent>
+
+            <TabsContent value="recent" className="mt-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Timestamp</TableHead>
+                    <TableHead>Sensors</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentReadings.map((event, index) => {
+                    // Extract all sensor readings from this event
+                    const standardTags = ['t', 'a', 'e', 'p', 'd', 'alt', 'content-warning', 'subject', 'client'];
+                    const sensorData = event.tags
+                      .filter(([tag, value, model]) => 
+                        !standardTags.includes(tag) && 
+                        value !== undefined && 
+                        model !== undefined &&
+                        !isNaN(parseFloat(value))
+                      )
+                      .map(([tag, value]) => `${tag}: ${parseFloat(value).toFixed(1)}`)
+                      .join(', ');
+
+                    return (
+                      <TableRow key={`${event.id}-${index}`}>
+                        <TableCell className="text-sm">
+                          {formatTime(event.created_at)}
+                        </TableCell>
+                        <TableCell className="text-sm font-mono">
+                          {sensorData || 'No sensor data'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {recentReadings.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
+                        No recent readings available
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
+          </Tabs>
         </div>
       </DialogContent>
     </Dialog>
