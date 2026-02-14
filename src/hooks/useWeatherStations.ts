@@ -5,6 +5,7 @@ import type { NostrEvent } from '@nostrify/nostrify';
 export interface SensorModel {
   model: string;
   types: string[]; // All sensor types this model provides (e.g., PMS5003 provides pm1, pm25, pm10)
+  statuses: Record<string, string>; // Status for each sensor type: 'ok' or '418'
 }
 
 export interface WeatherStation {
@@ -43,6 +44,7 @@ function parseWeatherStation(event: NostrEvent): WeatherStation {
 
   // Group sensor types by model
   const sensorsByModel = new Map<string, Set<string>>();
+  const sensorStatuses = new Map<string, Record<string, string>>();
 
   event.tags
     .filter(([tag]) => tag === 'sensor')
@@ -52,13 +54,27 @@ function parseWeatherStation(event: NostrEvent): WeatherStation {
 
       if (!sensorsByModel.has(modelName)) {
         sensorsByModel.set(modelName, new Set());
+        sensorStatuses.set(modelName, {});
       }
       sensorsByModel.get(modelName)!.add(sensorType);
+    });
+
+  // Parse sensor_status tags
+  event.tags
+    .filter(([tag]) => tag === 'sensor_status')
+    .forEach(([, type, model, status]) => {
+      const modelName = model || 'unknown';
+      const sensorType = type || 'unknown';
+      
+      if (sensorStatuses.has(modelName)) {
+        sensorStatuses.get(modelName)![sensorType] = status || 'unknown';
+      }
     });
 
   const sensorModels: SensorModel[] = Array.from(sensorsByModel.entries()).map(([model, types]) => ({
     model,
     types: Array.from(types),
+    statuses: sensorStatuses.get(model) || {},
   }));
 
   return {

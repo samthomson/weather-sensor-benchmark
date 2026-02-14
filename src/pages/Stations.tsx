@@ -6,12 +6,21 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/Header';
+import { StationDetailModal } from '@/components/StationDetailModal';
 import { RefreshCw } from 'lucide-react';
 import { useWeatherStations, type WeatherStation } from '@/hooks/useWeatherStations';
 import { useAllLatestReadings, type LatestSensorData } from '@/hooks/useAllLatestReadings';
 import { useQueryClient } from '@tanstack/react-query';
 
-function StationCard({ station, allReadings }: { station: WeatherStation; allReadings: LatestSensorData[] }) {
+function StationCard({ 
+  station, 
+  allReadings, 
+  onClick 
+}: { 
+  station: WeatherStation; 
+  allReadings: LatestSensorData[];
+  onClick: () => void;
+}) {
   // Force re-render every minute to update relative timestamps
   const [, setTick] = useState(0);
 
@@ -47,7 +56,10 @@ function StationCard({ station, allReadings }: { station: WeatherStation; allRea
   const hasData = stationReadings.length > 0;
 
   return (
-    <Card className={!hasData ? 'opacity-60' : ''}>
+    <Card 
+      className={`cursor-pointer transition-all hover:shadow-lg ${!hasData ? 'opacity-60' : ''}`}
+      onClick={onClick}
+    >
       <CardContent className="py-4">
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-2">
@@ -131,6 +143,7 @@ const Stations = () => {
   });
 
   const [hideInactive, setHideInactive] = useState(true);
+  const [selectedStation, setSelectedStation] = useState<WeatherStation | null>(null);
   const queryClient = useQueryClient();
   const { data: stations, isLoading: stationsLoading } = useWeatherStations();
 
@@ -213,10 +226,22 @@ const Stations = () => {
         {!isLoading && filteredStations.length > 0 && (
           <div className="grid md:grid-cols-2 gap-4">
             {filteredStations.map((station) => (
-              <StationCard key={station.pubkey} station={station} allReadings={allReadings} />
+              <StationCard 
+                key={station.pubkey} 
+                station={station} 
+                allReadings={allReadings}
+                onClick={() => setSelectedStation(station)}
+              />
             ))}
           </div>
         )}
+
+        <StationDetailModal
+          station={selectedStation}
+          readings={allReadings}
+          open={selectedStation !== null}
+          onOpenChange={(open) => !open && setSelectedStation(null)}
+        />
 
         {!isLoading && stations && stations.length > 0 && filteredStations.length === 0 && (
           <Card className="border-dashed">
