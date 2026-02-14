@@ -71,7 +71,6 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit',
     });
   };
 
@@ -89,8 +88,8 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-2xl">{station.name}</DialogTitle>
           {station.description && (
             <p className="text-sm text-muted-foreground pt-2">{station.description}</p>
@@ -98,34 +97,34 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
         </DialogHeader>
 
         {/* Metadata */}
-        <div className="flex gap-2 text-xs">
+        <div className="flex gap-2 text-xs flex-shrink-0">
           {station.power && <span className="px-2 py-1 bg-muted rounded">{station.power}</span>}
           {station.connectivity && <span className="px-2 py-1 bg-muted rounded">{station.connectivity}</span>}
           {station.geohash && <span className="px-2 py-1 bg-muted rounded">{station.geohash}</span>}
         </div>
 
-        <Tabs defaultValue="latest" className="w-full flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="latest" className="flex-1 flex flex-col min-h-0">
+          <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
             <TabsTrigger value="latest">Latest</TabsTrigger>
             <TabsTrigger value="recent">Recent</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="latest" className="space-y-6 mt-4 flex-1 overflow-y-auto">
-              {/* Sensor Models and their statuses */}
-              {station.sensorModels.map((model) => {
-                const modelReadings = readingsByModel.get(model.model) || [];
+          <TabsContent value="latest" className="flex-1 overflow-y-auto mt-4 space-y-6">
+            {station.sensorModels.map((model) => {
+              const modelReadings = readingsByModel.get(model.model) || [];
 
-                return (
-                  <div key={model.model} className="space-y-3">
-                    <h3 className="font-semibold text-lg">{model.model}</h3>
-                    
+              return (
+                <div key={model.model}>
+                  <h3 className="font-semibold mb-2">{model.model}</h3>
+                  
+                  <div className="border rounded-lg overflow-hidden">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Sensor Type</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Latest Value</TableHead>
-                          <TableHead className="text-right">Timestamp</TableHead>
+                          <TableHead className="w-[120px]">Sensor</TableHead>
+                          <TableHead className="w-[80px]">Status</TableHead>
+                          <TableHead className="text-right">Value</TableHead>
+                          <TableHead className="text-right w-[140px]">Updated</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -138,25 +137,26 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
                               <TableCell className="font-medium">{type}</TableCell>
                               <TableCell>
                                 {status === 'ok' ? (
-                                  <Badge variant="outline" className="gap-1 text-green-700 border-green-300 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950">
+                                  <Badge variant="outline" className="gap-1 text-xs text-green-700 border-green-300 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950">
                                     <CheckCircle className="h-3 w-3" />
                                     OK
                                   </Badge>
                                 ) : status === '418' ? (
-                                  <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:bg-amber-950">
+                                  <Badge variant="outline" className="text-xs text-amber-700 border-amber-300 bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:bg-amber-950">
                                     418
                                   </Badge>
                                 ) : (
                                   <span className="text-xs text-muted-foreground">—</span>
                                 )}
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-right font-semibold">
                                 {reading ? (
-                                  <span className="font-medium">
-                                    {reading.value.toFixed(1)} {reading.unit}
-                                  </span>
+                                  <>
+                                    {reading.value.toFixed(1)}{' '}
+                                    <span className="text-xs font-normal text-muted-foreground">{reading.unit}</span>
+                                  </>
                                 ) : (
-                                  <span className="text-muted-foreground">—</span>
+                                  <span className="text-muted-foreground font-normal">—</span>
                                 )}
                               </TableCell>
                               <TableCell className="text-right text-xs text-muted-foreground">
@@ -168,16 +168,18 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
                       </TableBody>
                     </Table>
                   </div>
-                );
-              })}
-            </TabsContent>
+                </div>
+              );
+            })}
+          </TabsContent>
 
-            <TabsContent value="recent" className="mt-4 flex-1 overflow-y-auto">
+          <TabsContent value="recent" className="flex-1 overflow-y-auto mt-4">
+            <div className="border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[180px]">Timestamp</TableHead>
-                    <TableHead>Sensor Readings</TableHead>
+                    <TableHead className="w-[140px]">Time</TableHead>
+                    <TableHead>Readings</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -194,26 +196,26 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
 
                     return (
                       <TableRow key={`${event.id}-${index}`}>
-                        <TableCell className="text-sm font-medium align-top">
+                        <TableCell className="text-sm align-top font-medium">
                           {formatTime(event.created_at)}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-3">
                           {sensorData.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-1.5">
                               {sensorData.map(([tag, value], i) => {
                                 const numValue = parseFloat(value);
                                 const unit = getUnit(tag);
                                 return (
-                                  <span key={i} className="text-xs px-2 py-1 bg-muted rounded">
-                                    <span className="font-medium">{tag}:</span>{' '}
+                                  <span key={i} className="inline-flex items-baseline gap-1 text-xs px-2 py-1 bg-muted/50 rounded">
+                                    <span className="text-muted-foreground">{tag}</span>
                                     <span className="font-semibold">{numValue.toFixed(1)}</span>
-                                    {unit && <span className="text-muted-foreground ml-0.5">{unit}</span>}
+                                    {unit && <span className="text-muted-foreground text-[10px]">{unit}</span>}
                                   </span>
                                 );
                               })}
                             </div>
                           ) : (
-                            <span className="text-sm text-muted-foreground">No sensor data</span>
+                            <span className="text-sm text-muted-foreground">No data</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -222,15 +224,15 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
                   {recentReadings.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
-                        No recent readings available
+                        No recent readings
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
-            </TabsContent>
-          </Tabs>
-        </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
