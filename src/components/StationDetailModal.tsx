@@ -40,23 +40,38 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
       if (!station) return [];
       
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      const relay = nostr.relay('wss://relay.samt.st');
       
       const now = Math.floor(Date.now() / 1000);
       const since = now - (24 * 60 * 60);
       
-      const events = await relay.query(
-        [{
-          kinds: [4223],
-          authors: [station.pubkey],
-          '#t': ['weather'],
-          since,
-          limit: 30,
-        }],
-        { signal }
+      // Query both relays
+      const relays = [
+        nostr.relay('wss://relay.samt.st'),
+        nostr.relay('wss://wr.samt.st')
+      ];
+      
+      const allEvents = await Promise.all(
+        relays.map(relay =>
+          relay.query(
+            [{
+              kinds: [4223],
+              authors: [station.pubkey],
+              '#t': ['weather'],
+              since,
+              limit: 30,
+            }],
+            { signal }
+          )
+        )
       );
       
-      return events.sort((a, b) => b.created_at - a.created_at);
+      // Combine and deduplicate by event ID
+      const eventMap = new Map();
+      allEvents.flat().forEach(event => {
+        eventMap.set(event.id, event);
+      });
+      
+      return Array.from(eventMap.values()).sort((a, b) => b.created_at - a.created_at).slice(0, 30);
     },
     enabled: open && station !== null,
     staleTime: 30 * 1000,
@@ -101,6 +116,9 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
           {station.power && <span className="px-2 py-1 bg-muted rounded">{station.power}</span>}
           {station.connectivity && <span className="px-2 py-1 bg-muted rounded">{station.connectivity}</span>}
           {station.geohash && <span className="px-2 py-1 bg-muted rounded">{station.geohash}</span>}
+          <span className="px-2 py-1 bg-primary/10 text-primary rounded">
+            {station.relay.replace('wss://', '')}
+          </span>
         </div>
 
         <Tabs defaultValue="latest" className="flex-1 flex flex-col min-h-0">

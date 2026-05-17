@@ -78,6 +78,9 @@ function StationCard({
               {station.power && <span className="px-2 py-1 bg-muted rounded">{station.power}</span>}
               {station.connectivity && <span className="px-2 py-1 bg-muted rounded">{station.connectivity}</span>}
               {station.geohash && <span className="px-2 py-1 bg-muted rounded">{station.geohash}</span>}
+              <span className="px-2 py-1 bg-primary/10 text-primary rounded">
+                {station.relay.replace('wss://', '')}
+              </span>
             </div>
             {latestTimestamp && (
               <span className="text-xs text-muted-foreground">

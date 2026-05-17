@@ -16,6 +16,7 @@ export interface WeatherStation {
   power?: string;
   connectivity?: string;
   sensorModels: SensorModel[];
+  relay: string; // Which relay this station metadata came from
   event: NostrEvent;
 }
 
@@ -100,18 +101,37 @@ export function useWeatherStations() {
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
-      // Query only from relay.samt.st
-      const relay = nostr.relay('wss://relay.samt.st');
+      // Query from both relays
+      const relays = [
+        'wss://relay.samt.st',
+        'wss://wr.samt.st'
+      ];
 
-      const events = await relay.query(
-        [{ kinds: [16158], limit: 100 }],
-        { signal }
+      // Query each relay and tag results with relay URL
+      const allStations = await Promise.all(
+        relays.map(async (relayUrl) => {
+          const relay = nostr.relay(relayUrl);
+          const events = await relay.query(
+            [{ kinds: [16158], limit: 100 }],
+            { signal }
+          );
+          
+          // Tag each event with which relay it came from
+          return events
+            .filter(validateWeatherStationEvent)
+            .map(event => ({ ...parseWeatherStation(event), relay: relayUrl }));
+        })
       );
 
-      // Filter and parse valid station events
-      return events
-        .filter(validateWeatherStationEvent)
-        .map(parseWeatherStation);
+      // Flatten and deduplicate by pubkey (keep first occurrence)
+      const stationMap = new Map<string, WeatherStation>();
+      allStations.flat().forEach(station => {
+        if (!stationMap.has(station.pubkey)) {
+          stationMap.set(station.pubkey, station);
+        }
+      });
+
+      return Array.from(stationMap.values());
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

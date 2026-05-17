@@ -22,33 +22,37 @@ export function useAllLatestReadings(pubkeys: string[]) {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
       if (pubkeys.length === 0) return [];
-
-      // Query only from relay.samt.st
-      const relay = nostr.relay('wss://relay.samt.st');
-
+      
+      // Query from both relays
+      const relays = [
+        nostr.relay('wss://relay.samt.st'),
+        nostr.relay('wss://wr.samt.st')
+      ];
+      
       const now = Math.floor(Date.now() / 1000);
       const since = now - (24 * 60 * 60); // Last 24 hours
-
-      // Query each station separately to ensure we get data from all stations
-      // (prevents one high-frequency station from filling the limit)
+      
+      // Query each station from each relay
       const allEvents = await Promise.all(
-        pubkeys.map(pubkey =>
-          relay.query(
-            [{
-              kinds: [4223],
-              authors: [pubkey],
-              '#t': ['weather'],
-              since,
-              limit: 100, // Get recent events per station
-            }],
-            { signal }
+        relays.flatMap(relay =>
+          pubkeys.map(pubkey =>
+            relay.query(
+              [{
+                kinds: [4223],
+                authors: [pubkey],
+                '#t': ['weather'],
+                since,
+                limit: 100, // Get recent events per station
+              }],
+              { signal }
+            )
           )
         )
       );
-
+      
       const events = allEvents.flat();
-
-      console.log(`Fetched ${events.length} events total from ${pubkeys.length} stations (${pubkeys.length} queries)`);
+      
+      console.log(`Fetched ${events.length} events total from ${pubkeys.length} stations across 2 relays`);
 
       // Parse all sensor readings from events, grouped by station
       const allReadings: LatestSensorData[] = [];
