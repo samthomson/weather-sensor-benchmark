@@ -1,6 +1,7 @@
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import type { NostrEvent } from '@nostrify/nostrify';
+import { WEATHER_RELAYS } from '@/lib/relays';
 
 export interface SensorReading {
   timestamp: number;
@@ -75,8 +76,8 @@ export function useSensorReadings({
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
 
-      // Query only from relay.samt.st
-      const relay = nostr.relay('wss://relay.samt.st');
+      // Query all configured relays
+      const relays = WEATHER_RELAYS.map(url => nostr.relay(url));
 
       const filter: Record<string, unknown> = {
         kinds: [4223],
@@ -89,7 +90,17 @@ export function useSensorReadings({
         filter.until = until;
       }
 
-      const events = await relay.query([filter], { signal });
+      // Query all relays in parallel
+      const allEventArrays = await Promise.all(
+        relays.map(relay => relay.query([filter], { signal }))
+      );
+      
+      // Deduplicate by event ID
+      const eventMap = new Map<string, NostrEvent>();
+      allEventArrays.flat().forEach(event => {
+        eventMap.set(event.id, event);
+      });
+      const events = Array.from(eventMap.values());
 
       // Filter valid events and parse readings
       const allReadings = events
@@ -123,8 +134,8 @@ export function useMultipleSensorReadings(
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(60000)]);
 
-      // Query only from relay.samt.st
-      const relay = nostr.relay('wss://relay.samt.st');
+      // Query all configured relays
+      const relays = WEATHER_RELAYS.map(url => nostr.relay(url));
 
       // Get unique pubkeys
       const pubkeys = [...new Set(sensors.map(s => s.pubkey))];
@@ -155,7 +166,8 @@ export function useMultipleSensorReadings(
       for (let i = 0; i < timeWindows.length; i += batchSize) {
         const batch = timeWindows.slice(i, i + batchSize);
 
-        const batchPromises = batch.map(window => {
+        // For each window, query all relays in parallel
+        const batchPromises = batch.map(async (window) => {
           const filter: Record<string, unknown> = {
             kinds: [4223],
             authors: pubkeys,
@@ -164,7 +176,18 @@ export function useMultipleSensorReadings(
             until: window.end,
             limit: 10,
           };
-          return relay.query([filter], { signal });
+          
+          // Query all relays for this window
+          const relayResults = await Promise.all(
+            relays.map(relay => relay.query([filter], { signal }))
+          );
+          
+          // Deduplicate events by ID
+          const eventMap = new Map<string, NostrEvent>();
+          relayResults.flat().forEach(event => {
+            eventMap.set(event.id, event);
+          });
+          return Array.from(eventMap.values());
         });
 
         const batchResults = await Promise.all(batchPromises);

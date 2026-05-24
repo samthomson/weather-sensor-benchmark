@@ -1,6 +1,7 @@
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import type { NostrEvent } from '@nostrify/nostrify';
+import { WEATHER_RELAYS } from '@/lib/relays';
 
 export interface SensorModel {
   model: string;
@@ -101,15 +102,9 @@ export function useWeatherStations() {
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
-      // Query from both relays
-      const relays = [
-        'wss://relay.samt.st',
-        'wss://wr.samt.st'
-      ];
-
       // Query each relay and tag results with relay URL
       const allStations = await Promise.all(
-        relays.map(async (relayUrl) => {
+        WEATHER_RELAYS.map(async (relayUrl) => {
           const relay = nostr.relay(relayUrl);
           const events = await relay.query(
             [{ kinds: [16158], limit: 100 }],

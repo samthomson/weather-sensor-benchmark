@@ -1,5 +1,6 @@
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
+import { WEATHER_RELAYS } from '@/lib/relays';
 
 export interface LatestSensorData {
   pubkey: string;
@@ -23,11 +24,8 @@ export function useAllLatestReadings(pubkeys: string[]) {
 
       if (pubkeys.length === 0) return [];
       
-      // Query from both relays
-      const relays = [
-        nostr.relay('wss://relay.samt.st'),
-        nostr.relay('wss://wr.samt.st')
-      ];
+      // Query all configured relays
+      const relays = WEATHER_RELAYS.map(url => nostr.relay(url));
       
       const now = Math.floor(Date.now() / 1000);
       const since = now - (24 * 60 * 60); // Last 24 hours
@@ -52,7 +50,7 @@ export function useAllLatestReadings(pubkeys: string[]) {
       
       const events = allEvents.flat();
       
-      console.log(`Fetched ${events.length} events total from ${pubkeys.length} stations across 2 relays`);
+      console.log(`Fetched ${events.length} events total from ${pubkeys.length} stations across ${WEATHER_RELAYS.length} relays`);
 
       // Parse all sensor readings from events, grouped by station
       const allReadings: LatestSensorData[] = [];

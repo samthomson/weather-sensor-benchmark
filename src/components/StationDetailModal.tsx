@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle } from 'lucide-react';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
+import { WEATHER_RELAYS } from '@/lib/relays';
 import type { WeatherStation } from '@/hooks/useWeatherStations';
 import type { LatestSensorData } from '@/hooks/useAllLatestReadings';
 
@@ -44,11 +45,8 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
       const now = Math.floor(Date.now() / 1000);
       const since = now - (24 * 60 * 60);
       
-      // Query both relays
-      const relays = [
-        nostr.relay('wss://relay.samt.st'),
-        nostr.relay('wss://wr.samt.st')
-      ];
+      // Query all configured relays
+      const relays = WEATHER_RELAYS.map(url => nostr.relay(url));
       
       const allEvents = await Promise.all(
         relays.map(relay =>
