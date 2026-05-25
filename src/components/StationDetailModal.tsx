@@ -107,6 +107,11 @@ export function StationDetailModal({ station, readings, open, onOpenChange }: St
           {station.description && (
             <p className="text-sm text-muted-foreground pt-2">{station.description}</p>
           )}
+          {station.deviceId && (
+            <p className="text-xs text-muted-foreground/70 font-mono">
+              Device: {station.deviceId}
+            </p>
+          )}
         </DialogHeader>
 
         {/* Metadata */}

@@ -71,7 +71,12 @@ function StationCard({
             )}
           </div>
           {station.description && (
-            <p className="text-sm text-muted-foreground mb-2">{station.description}</p>
+            <p className="text-sm text-muted-foreground mb-1">{station.description}</p>
+          )}
+          {station.deviceId && (
+            <p className="text-xs text-muted-foreground/70 mb-2 font-mono">
+              Device: {station.deviceId}
+            </p>
           )}
           <div className="flex items-center justify-between">
             <div className="flex gap-2 text-xs text-muted-foreground">
